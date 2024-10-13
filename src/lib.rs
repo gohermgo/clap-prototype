@@ -10,7 +10,7 @@ pub fn add(left: u64, right: u64) -> u64 {
 pub mod ext;
 pub mod factory;
 pub mod plugin;
-pub trait Prototype<'host> {
+pub trait AbstractPrototype<'host> {
     type Base;
     // #[allow(clippy::missing_safety_doc)]
     // unsafe fn from_raw_base<'ptr>(base_ptr: *const Self::Base) -> Option<&'ptr Self>;

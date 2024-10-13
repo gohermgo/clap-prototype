@@ -1,4 +1,4 @@
-use crate::{plugin::PluginPrototype, Prototype};
+use crate::{plugin::PluginPrototype, AbstractPrototype};
 use clap_sys::{
     factory::plugin_factory::clap_plugin_factory,
     host::clap_host,
@@ -6,7 +6,9 @@ use clap_sys::{
 };
 use core::{ffi::CStr, ptr::null};
 use std::ffi::c_char;
-pub trait PluginFactoryPrototype<'host>: Prototype<'host, Base = clap_plugin_factory> {
+pub trait PluginFactoryPrototype<'host>:
+    AbstractPrototype<'host, Base = clap_plugin_factory>
+{
     /// Associated type referring to the
     /// type of plugin this factory produces
     type Produced: PluginPrototype<'host> + 'host;

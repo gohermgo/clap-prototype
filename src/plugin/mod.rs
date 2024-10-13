@@ -1,10 +1,190 @@
-use super::Prototype;
+use super::AbstractPrototype;
 use clap_sys::plugin::clap_plugin;
-use std::ffi::CStr;
-
-pub trait PluginPrototype<'host>: Prototype<'host, Base = clap_plugin> {
-    const DESCRIPTOR: &'static clap_plugin_descriptor;
-    const ID: &'static CStr = const { unsafe { CStr::from_ptr(Self::DESCRIPTOR.id) } };
+use std::{borrow, ffi, ops, ptr};
+pub trait PluginDescriptorComponent {
+    type Raw;
+    fn as_raw(&self) -> Self::Raw;
+}
+macro_rules! string_component {
+    ($t:tt) => {
+        #[repr(transparent)]
+        pub struct $t(std::ffi::CString);
+        impl std::borrow::Borrow<std::ffi::CStr> for $t {
+            fn borrow(&self) -> &std::ffi::CStr {
+                &self.0
+            }
+        }
+        impl std::ops::Deref for $t {
+            type Target = std::ffi::CString;
+            fn deref(&self) -> &Self::Target {
+                &self.0
+            }
+        }
+        impl AsRef<std::ffi::CStr> for $t {
+            fn as_ref(&self) -> &std::ffi::CStr {
+                std::borrow::Borrow::borrow(self)
+            }
+        }
+        impl PluginDescriptorComponent for $t {
+            type Raw = *const i8;
+            fn as_raw(&self) -> Self::Raw {
+                self.0.as_ptr()
+            }
+        }
+    };
+}
+string_component!(PluginID);
+string_component!(PluginName);
+string_component!(PluginVendor);
+string_component!(PluginURL);
+string_component!(PluginVersion);
+string_component!(PluginDescription);
+pub enum PluginFeature {
+    Instrument,
+    AudioEffect,
+    NoteEffect,
+    NoteDetector,
+    Analyzer,
+    Synthesizer,
+    Sampler,
+    Drum,
+    DrumMachine,
+    Filter,
+    Phaser,
+    Equalizer,
+    DeEsser,
+    PhaseVocoder,
+    Granular,
+    FrequencyShifter,
+    PitchShifter,
+    Distortion,
+    TransientShaper,
+    Compressor,
+    Expander,
+    Gate,
+    Limiter,
+    Flanger,
+    Chorus,
+    Delay,
+    Reverb,
+    Tremolo,
+    Glitch,
+    Utility,
+    PitchCorrection,
+    Restoration,
+    MultiEffects,
+    Mixing,
+    Mastering,
+    Mono,
+    Stereo,
+    Surround,
+    Ambisonic,
+}
+impl PluginFeature {
+    fn evaluate(&self) -> &'static ffi::CStr {
+        use clap_sys::plugin_features::*;
+        use PluginFeature::*;
+        match self {
+            Instrument => CLAP_PLUGIN_FEATURE_INSTRUMENT,
+            AudioEffect => CLAP_PLUGIN_FEATURE_AUDIO_EFFECT,
+            NoteEffect => CLAP_PLUGIN_FEATURE_NOTE_EFFECT,
+            NoteDetector => CLAP_PLUGIN_FEATURE_NOTE_DETECTOR,
+            Analyzer => CLAP_PLUGIN_FEATURE_ANALYZER,
+            Synthesizer => CLAP_PLUGIN_FEATURE_SYNTHESIZER,
+            Sampler => CLAP_PLUGIN_FEATURE_SAMPLER,
+            Drum => CLAP_PLUGIN_FEATURE_DRUM,
+            DrumMachine => CLAP_PLUGIN_FEATURE_DRUM_MACHINE,
+            Filter => CLAP_PLUGIN_FEATURE_FILTER,
+            Phaser => CLAP_PLUGIN_FEATURE_PHASER,
+            Equalizer => CLAP_PLUGIN_FEATURE_EQUALIZER,
+            DeEsser => CLAP_PLUGIN_FEATURE_DEESSER,
+            PhaseVocoder => CLAP_PLUGIN_FEATURE_PHASE_VOCODER,
+            Granular => CLAP_PLUGIN_FEATURE_GRANULAR,
+            FrequencyShifter => CLAP_PLUGIN_FEATURE_FREQUENCY_SHIFTER,
+            PitchShifter => CLAP_PLUGIN_FEATURE_PITCH_SHIFTER,
+            Distortion => CLAP_PLUGIN_FEATURE_DISTORTION,
+            TransientShaper => CLAP_PLUGIN_FEATURE_TRANSIENT_SHAPER,
+            Compressor => CLAP_PLUGIN_FEATURE_COMPRESSOR,
+            Expander => CLAP_PLUGIN_FEATURE_EXPANDER,
+            Gate => CLAP_PLUGIN_FEATURE_GATE,
+            Limiter => CLAP_PLUGIN_FEATURE_LIMITER,
+            Flanger => CLAP_PLUGIN_FEATURE_FLANGER,
+            Chorus => CLAP_PLUGIN_FEATURE_CHORUS,
+            Delay => CLAP_PLUGIN_FEATURE_DELAY,
+            Reverb => CLAP_PLUGIN_FEATURE_REVERB,
+            Tremolo => CLAP_PLUGIN_FEATURE_TREMOLO,
+            Glitch => CLAP_PLUGIN_FEATURE_GLITCH,
+            Utility => CLAP_PLUGIN_FEATURE_UTILITY,
+            PitchCorrection => CLAP_PLUGIN_FEATURE_PITCH_CORRECTION,
+            Restoration => CLAP_PLUGIN_FEATURE_RESTORATION,
+            MultiEffects => CLAP_PLUGIN_FEATURE_MULTI_EFFECTS,
+            Mixing => CLAP_PLUGIN_FEATURE_MIXING,
+            Mastering => CLAP_PLUGIN_FEATURE_MASTERING,
+            Mono => CLAP_PLUGIN_FEATURE_MONO,
+            Stereo => CLAP_PLUGIN_FEATURE_STEREO,
+            Surround => CLAP_PLUGIN_FEATURE_SURROUND,
+            Ambisonic => CLAP_PLUGIN_FEATURE_AMBISONIC,
+        }
+    }
+}
+impl borrow::Borrow<ffi::CStr> for PluginFeature {
+    fn borrow(&self) -> &ffi::CStr {
+        self.evaluate()
+    }
+}
+impl PluginDescriptorComponent for PluginFeature {
+    type Raw = *const i8;
+    fn as_raw(&self) -> Self::Raw {
+        self.evaluate().as_ptr()
+    }
+}
+pub struct PluginDescriptor {
+    pub framework_version: clap_version,
+    pub id: PluginID,
+    pub name: PluginName,
+    pub vendor: PluginVendor,
+    pub url: PluginURL,
+    pub manual_url: PluginURL,
+    pub support_url: PluginURL,
+    pub version: PluginVersion,
+    pub description: PluginDescription,
+    pub features: Vec<PluginFeature>,
+}
+impl PluginDescriptor {
+    pub fn create_raw(&self) -> clap_plugin_descriptor {
+        let mut features: Vec<*const i8> = self
+            .features
+            .iter()
+            .map(|feature| feature.evaluate().as_ptr())
+            .collect();
+        features.push(ptr::null());
+        let features = features.as_ptr();
+        clap_plugin_descriptor {
+            clap_version: self.framework_version,
+            id: self.id.as_ptr(),
+            name: self.name.as_ptr(),
+            vendor: self.vendor.as_ptr(),
+            url: self.url.as_ptr(),
+            manual_url: self.manual_url.as_ptr(),
+            support_url: self.support_url.as_ptr(),
+            version: self.version.as_ptr(),
+            description: self.description.as_ptr(),
+            features,
+        }
+    }
+}
+impl borrow::Borrow<clap_plugin_descriptor> for PluginDescriptor {
+    fn borrow(&self) -> &clap_plugin_descriptor {
+        todo!()
+    }
+}
+pub trait PluginPrototype<'host>: AbstractPrototype<'host, Base = clap_plugin> {
+    fn get_descriptor(&self) -> &PluginDescriptor;
+    fn get_id(&self) -> &PluginID {
+        &self.get_descriptor().id
+    }
+    // const DESCRIPTOR: &'static clap_plugin_descriptor;
+    // const ID: &'static ffi::CStr = const { unsafe { ffi::CStr::from_ptr(Self::DESCRIPTOR.id) } };
 }
 
 /// Work in progress trait based on my initial integration
