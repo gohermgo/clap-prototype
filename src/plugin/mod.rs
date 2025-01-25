@@ -2,25 +2,26 @@ use super::AbstractPrototype;
 use clap_sys::plugin::clap_plugin;
 use std::sync::Arc;
 use std::{borrow, ffi, ops, ptr};
+use std::{borrow, ffi, ptr};
 pub trait PluginDescriptorComponent {
-    type Raw;
-    fn as_raw(&self) -> Self::Raw;
+    type Pointer;
+    fn as_ptr(&self) -> Self::Pointer;
 }
 impl<T> PluginDescriptorComponent for Arc<T>
 where
     T: PluginDescriptorComponent,
 {
-    type Raw = T::Raw;
-    fn as_raw(&self) -> Self::Raw {
-        T::as_raw(self.as_ref())
+    type Pointer = T::Pointer;
+    fn as_ptr(&self) -> Self::Pointer {
+        T::as_ptr(self.as_ref())
     }
 }
 macro_rules! string_component {
     ($t:tt) => {
         ::clap_proc_tools::ez_c_str! { $t }
         impl PluginDescriptorComponent for $t {
-            type Raw = *const i8;
-            fn as_raw(&self) -> Self::Raw {
+            type Pointer = *const i8;
+            fn as_ptr(&self) -> Self::Pointer {
                 self.as_ref().as_ptr()
             }
         }
@@ -132,12 +133,6 @@ impl borrow::Borrow<ffi::CStr> for PluginFeatureKind {
         self.as_c_str()
     }
 }
-impl PluginDescriptorComponent for PluginFeatureKind {
-    type Raw = *const i8;
-    fn as_raw(&self) -> Self::Raw {
-        self.as_c_str().as_ptr()
-    }
-}
 pub struct PluginDescriptor {
     pub framework_version: clap_version,
     pub id: Arc<PluginID>,
@@ -151,7 +146,14 @@ pub struct PluginDescriptor {
     pub features: Vec<PluginFeatureKind>,
 }
 impl PluginDescriptor {
-    pub fn create_raw(&self) -> clap_plugin_descriptor {
+    pub fn new() -> Self {}
+    pub fn from_raw(raw: clap_plugin_descriptor) -> Self {
+        Self {
+            framework_version: raw.clap_version,
+            id: PluginID::from_raw(raw.id),
+        }
+    }
+    pub fn into_raw(self) -> clap_plugin_descriptor {
         let mut features: Vec<*const i8> = self
             .features
             .iter()
@@ -173,9 +175,9 @@ impl PluginDescriptor {
         }
     }
 }
-impl borrow::Borrow<clap_plugin_descriptor> for PluginDescriptor {
-    fn borrow(&self) -> &clap_plugin_descriptor {
-        todo!()
+impl From<PluginDescriptor> for clap_plugin_descriptor {
+    fn from(value: PluginDescriptor) -> Self {
+        value.into_raw()
     }
 }
 pub trait PluginPrototype<'host>: AbstractPrototype<'host, Base = clap_plugin> {
