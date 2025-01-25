@@ -1,7 +1,20 @@
 [package]
 name = "clap-prototype"
 version = "0.0.1"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 clap-sys = { version = "0.4.0" }
+
+[workspace]
+members = ["clap-proc-tools", "ffi-wrap"]
+package = { version = "0.0.1", edition = "2024" }
+
+[workspace.dependencies]
+syn = { version = "2", features = ["full"] }
+quote = "1"
+proc-macro2 = "1"
+
+ffi-wrap.path = "ffi-wrap"
+clap-proc-tools.path = "clap-proc-tools"
+

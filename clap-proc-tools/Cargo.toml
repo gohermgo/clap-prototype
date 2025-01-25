@@ -1,0 +1,10 @@
+[package]
+name = "clap-proc-tools"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+proc-macro = true
+
+[dependencies]
+ffi-wrap.workspace = true
