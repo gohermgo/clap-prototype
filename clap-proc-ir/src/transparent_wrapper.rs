@@ -9,9 +9,8 @@ use syn::{Token, parse_quote};
 use syn::{AngleBracketedGenericArguments, Lifetime};
 use syn::{Attribute, Expr, Ident, Type};
 
-use crate::ir::implementation::IntoTraitImpl;
-
-use super::implementation::DerefImpl;
+use crate::implementation::DerefImpl;
+use crate::implementation::IntoTraitImpl;
 
 pub struct TransparentDerefImpl<'wrapper, 'entry> {
     pub implementor: &'wrapper WrapperDefinition<'entry>,

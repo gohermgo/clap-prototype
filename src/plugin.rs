@@ -1,6 +1,9 @@
 use core::ops::Deref;
 use std::ffi::c_void;
 
+use crate::ext::ExtensionPointer;
+use crate::ext::params::PluginParamsPrototype;
+
 use super::AbstractPrototype;
 use clap_sys::events::clap_output_events;
 use clap_sys::plugin::clap_plugin;
@@ -36,6 +39,7 @@ macro_rules! string_component {
         }
     };
 }
+string_component! { PluginParameterValueText }
 string_component! { PluginID }
 string_component! { PluginName }
 impl PluginName {
@@ -262,6 +266,12 @@ pub trait PluginPrototype<'host>: AbstractPrototype<'host, Base = clap_plugin> {
         let extension = unsafe { get_fn(base, extension_id.as_ptr()) };
         let extension: *const Ext = extension.cast();
         unsafe { extension.as_ref() }
+    }
+    fn get_plugin_params_extension<P: ?Sized>(&self) -> Option<ExtensionPointer<'host, P>>
+    where
+        P: PluginParamsPrototype<'host, Parent = Self>,
+    {
+        None
     }
 }
 

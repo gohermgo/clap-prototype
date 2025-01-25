@@ -1,6 +1,6 @@
 use clap_sys::process::{
-    clap_process_status, CLAP_PROCESS_CONTINUE, CLAP_PROCESS_CONTINUE_IF_NOT_QUIET,
-    CLAP_PROCESS_ERROR, CLAP_PROCESS_SLEEP, CLAP_PROCESS_TAIL,
+    CLAP_PROCESS_CONTINUE, CLAP_PROCESS_CONTINUE_IF_NOT_QUIET, CLAP_PROCESS_ERROR,
+    CLAP_PROCESS_SLEEP, CLAP_PROCESS_TAIL, clap_process_status,
 };
 use core::mem::transmute;
 
@@ -62,6 +62,14 @@ pub const CLAP_ERROR_INIT_FAILED: ClapErrorKindCode = 0b01;
 pub enum ClapErrorKind {
     NotFound(EntityKind) = 0b00,
     InitFailed(EntityKind) = 0b01,
+
+    Unknown(EntityKind) = u8::MAX as i8,
+}
+impl From<ClapErrorKind> for u16 {
+    #[inline]
+    fn from(value: ClapErrorKind) -> Self {
+        unsafe { core::mem::transmute(value) }
+    }
 }
 // impl From<u16> for ClapErrorKind {
 //     fn from(value: u16) -> Self {

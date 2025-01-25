@@ -1,11 +1,5 @@
-//! Intermediate representation
-//!
-//!
-
-pub mod implementation;
-pub mod transparent;
-
-use implementation::{AsRefImpl, DerefImpl};
+use crate::implementation::{AsRefImpl, DerefImpl};
+use crate::transparent_wrapper::WrapperDefinition;
 use proc_macro2::TokenStream as TokenStream2;
 
 use quote::{ToTokens, quote};
@@ -14,11 +8,18 @@ use syn::{Token, parse_quote};
 
 use syn::{AngleBracketedGenericArguments, Ident};
 
-pub struct EzCStr {
+pub fn parse(input: TokenStream2) -> TokenStream2 {
+    match syn::parse2::<CStr>(input).map_err(syn::Error::into_compile_error) {
+        Ok(val) => quote! { #val },
+        Err(e) => e,
+    }
+}
+
+pub struct CStr {
     pub name: Ident,
     pub generics: Option<AngleBracketedGenericArguments>,
 }
-impl Parse for EzCStr {
+impl Parse for CStr {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let name: Ident = input.parse()?;
         println!("Parsed new EzCStr {name:?}");
@@ -27,14 +28,14 @@ impl Parse for EzCStr {
             let generic_arguments = input.parse()?;
             generics = Some(generic_arguments);
         };
-        Ok(EzCStr { name, generics })
+        Ok(CStr { name, generics })
     }
 }
-impl EzCStr {
+impl CStr {
     #[inline(always)]
-    fn gen_inner(&self, r#struct: transparent::WrapperDefinition<'_>) -> TokenStream2 {
+    fn gen_inner(&self, r#struct: WrapperDefinition<'_>) -> TokenStream2 {
         println!("Generating EzCStr");
-        let EzCStr { name, .. } = self;
+        let CStr { name, .. } = self;
         let as_ref_impl = AsRefImpl {
             lifetime_generic: None,
             implementor_type: parse_quote! {#name},
@@ -71,9 +72,9 @@ impl EzCStr {
         }
     }
     #[inline(always)]
-    fn reference_wrapper(&self) -> transparent::WrapperDefinition<'_> {
+    fn reference_wrapper(&self) -> WrapperDefinition<'_> {
         println!("Generating reference wrapper for EzCStr");
-        transparent::WrapperDefinition {
+        WrapperDefinition {
             lifetime: Some(parse_quote!('a)),
             name: &self.name,
             wrapped_type: parse_quote! {::core::ffi::CStr },
@@ -83,9 +84,9 @@ impl EzCStr {
         self.gen_inner(self.reference_wrapper())
     }
     #[inline(always)]
-    fn unsized_wrapper(&self) -> transparent::WrapperDefinition<'_> {
+    fn unsized_wrapper(&self) -> WrapperDefinition<'_> {
         println!("Generating unsized wrapper for EzCStr");
-        transparent::WrapperDefinition {
+        WrapperDefinition {
             name: &self.name,
             wrapped_type: parse_quote! { ::core::ffi::CStr },
             lifetime: None,
@@ -133,7 +134,7 @@ impl EzCStr {
         buf
     }
 }
-impl ToTokens for EzCStr {
+impl ToTokens for CStr {
     fn to_tokens(&self, tokens: &mut TokenStream2) {
         tokens.extend(if self.generics.is_some() {
             self.gen_reference_wrapper()
