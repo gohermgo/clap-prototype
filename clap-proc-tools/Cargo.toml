@@ -1,10 +1,10 @@
 [package]
 name = "clap-proc-tools"
-version.workspace = true
-edition.workspace = true
+version = "0.2.0"
+edition = "2024"
 
 [lib]
 proc-macro = true
 
 [dependencies]
-ffi-wrap.workspace = true
+ffi-wrap.path = "../ffi-wrap"
