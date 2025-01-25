@@ -11,7 +11,7 @@ pub mod ext;
 pub mod factory;
 pub mod plugin;
 pub trait AbstractPrototype<'host> {
-    type Base;
+    type Base: 'host;
     // #[allow(clippy::missing_safety_doc)]
     // unsafe fn from_raw_base<'ptr>(base_ptr: *const Self::Base) -> Option<&'ptr Self>;
     fn as_base(&self) -> &Self::Base;

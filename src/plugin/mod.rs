@@ -1,9 +1,9 @@
 use super::AbstractPrototype;
 use clap_sys::plugin::clap_plugin;
-use std::{borrow, ffi, ops, ptr};
+use std::{borrow, ffi, ptr};
 pub trait PluginDescriptorComponent {
-    type Raw;
-    fn as_raw(&self) -> Self::Raw;
+    type Pointer;
+    fn as_ptr(&self) -> Self::Pointer;
 }
 macro_rules! string_component {
     ($t:tt) => {
@@ -26,14 +26,33 @@ macro_rules! string_component {
             }
         }
         impl PluginDescriptorComponent for $t {
-            type Raw = *const i8;
-            fn as_raw(&self) -> Self::Raw {
+            type Pointer = *const i8;
+            fn as_ptr(&self) -> Self::Pointer {
                 self.0.as_ptr()
             }
         }
     };
 }
+pub trait FromRaw {
+    type Raw;
+    fn from_raw(raw: Self::Raw) -> Self;
+}
 string_component!(PluginID);
+impl FromRaw for PluginID {
+    type Raw = *const i8;
+    fn from_raw(raw: Self::Raw) -> Self {
+        let borrowed = unsafe { ffi::CStr::from_ptr(raw) };
+        PluginID(borrow::ToOwned::to_owned(borrowed))
+    }
+}
+#[repr(transparent)]
+struct PluginIDSlice(ffi::CStr);
+impl std::ops::Deref for PluginIDSlice {
+    type Target = ffi::CStr;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 string_component!(PluginName);
 string_component!(PluginVendor);
 string_component!(PluginURL);
@@ -81,7 +100,7 @@ pub enum PluginFeature {
     Ambisonic,
 }
 impl PluginFeature {
-    fn evaluate(&self) -> &'static ffi::CStr {
+    fn as_raw(&self) -> &'static ffi::CStr {
         use clap_sys::plugin_features::*;
         use PluginFeature::*;
         match self {
@@ -129,13 +148,13 @@ impl PluginFeature {
 }
 impl borrow::Borrow<ffi::CStr> for PluginFeature {
     fn borrow(&self) -> &ffi::CStr {
-        self.evaluate()
+        self.as_raw()
     }
 }
 impl PluginDescriptorComponent for PluginFeature {
-    type Raw = *const i8;
-    fn as_raw(&self) -> Self::Raw {
-        self.evaluate().as_ptr()
+    type Pointer = *const i8;
+    fn as_ptr(&self) -> Self::Pointer {
+        self.as_raw().as_ptr()
     }
 }
 pub struct PluginDescriptor {
@@ -151,11 +170,18 @@ pub struct PluginDescriptor {
     pub features: Vec<PluginFeature>,
 }
 impl PluginDescriptor {
-    pub fn create_raw(&self) -> clap_plugin_descriptor {
+    pub fn new() -> Self {}
+    pub fn from_raw(raw: clap_plugin_descriptor) -> Self {
+        Self {
+            framework_version: raw.clap_version,
+            id: PluginID::from_raw(raw.id),
+        }
+    }
+    pub fn into_raw(self) -> clap_plugin_descriptor {
         let mut features: Vec<*const i8> = self
             .features
             .iter()
-            .map(|feature| feature.evaluate().as_ptr())
+            .map(|feature| feature.as_raw().as_ptr())
             .collect();
         features.push(ptr::null());
         let features = features.as_ptr();
@@ -173,9 +199,9 @@ impl PluginDescriptor {
         }
     }
 }
-impl borrow::Borrow<clap_plugin_descriptor> for PluginDescriptor {
-    fn borrow(&self) -> &clap_plugin_descriptor {
-        todo!()
+impl From<PluginDescriptor> for clap_plugin_descriptor {
+    fn from(value: PluginDescriptor) -> Self {
+        value.into_raw()
     }
 }
 pub trait PluginPrototype<'host>: AbstractPrototype<'host, Base = clap_plugin> {
