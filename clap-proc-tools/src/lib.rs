@@ -4,6 +4,6 @@ extern crate proc_macro;
 use proc_macro::TokenStream;
 
 #[proc_macro]
-pub fn ez_string(input: TokenStream) -> TokenStream {
-    ::ffi_wrap::ez_string(input.into()).into()
+pub fn ez_c_str(input: TokenStream) -> TokenStream {
+    ::ffi_wrap::ez_c_str(input.into()).into()
 }
