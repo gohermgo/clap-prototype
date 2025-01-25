@@ -1,27 +1,34 @@
 use core::ops::Deref;
+use std::ffi::c_void;
 
 use super::AbstractPrototype;
+use clap_sys::events::clap_output_events;
 use clap_sys::plugin::clap_plugin;
-use clap_sys::string_sizes::CLAP_NAME_SIZE;
+use clap_sys::string_sizes::{CLAP_NAME_SIZE, CLAP_PATH_SIZE};
 use std::sync::Arc;
 use std::{borrow, ffi, ptr};
-pub trait PluginDescriptorComponent {
+pub trait PluginStringSlice {
     type Pointer;
     fn as_ptr(&self) -> Self::Pointer;
 }
-impl<T> PluginDescriptorComponent for Arc<T>
+impl<T> PluginStringSlice for Arc<T>
 where
-    T: PluginDescriptorComponent,
+    T: PluginStringSlice,
 {
     type Pointer = T::Pointer;
     fn as_ptr(&self) -> Self::Pointer {
         T::as_ptr(self.as_ref())
     }
 }
+const fn to_fixed<const FIXED_LENGTH: usize>(data: *const i8, len: usize) -> [i8; FIXED_LENGTH] {
+    let mut buf = [0_i8; FIXED_LENGTH];
+    unsafe { core::ptr::copy(data, buf.as_mut_ptr(), len) };
+    buf
+}
 macro_rules! string_component {
     ($t:tt) => {
         ::clap_proc_tools::ez_c_str! { $t }
-        impl PluginDescriptorComponent for $t {
+        impl PluginStringSlice for $t {
             type Pointer = *const i8;
             fn as_ptr(&self) -> Self::Pointer {
                 self.as_ref().as_ptr()
@@ -31,11 +38,23 @@ macro_rules! string_component {
 }
 string_component! { PluginID }
 string_component! { PluginName }
+impl PluginName {
+    pub const fn to_fixed(&self) -> [i8; CLAP_NAME_SIZE] {
+        to_fixed(self.0.as_ptr(), self.0.count_bytes())
+    }
+}
 string_component! { PluginVendor }
 string_component! { PluginURL }
 string_component! { PluginVersion }
 string_component! { PluginDescription }
 string_component! { PluginFeature }
+string_component! { PluginPath }
+impl PluginPath {
+    pub const fn to_fixed(&self) -> [i8; CLAP_PATH_SIZE] {
+        to_fixed(self.0.as_ptr(), self.0.count_bytes())
+    }
+}
+string_component! { PluginExtensionID }
 pub enum PluginFeatureKind {
     Instrument,
     AudioEffect,
@@ -191,6 +210,7 @@ fn clap_features_from_raw<'desc>(
 }
 impl<'desc> PluginDescriptor<'desc> {
     pub fn from_raw(raw: &'desc clap_plugin_descriptor) -> PluginDescriptor<'desc> {
+        println!("CONSTRUCTING PLUGIN_DESCRIPTOR {raw:#?}");
         Self {
             framework_version: raw.clap_version,
             id: unsafe { PluginID::from_ptr(raw.id) },
@@ -208,7 +228,7 @@ impl<'desc> PluginDescriptor<'desc> {
         let p = self.features.as_ptr();
         let features =
             unsafe { core::mem::transmute::<*const &PluginFeature, *const *const i8>(p) };
-        clap_plugin_descriptor {
+        let raw = clap_plugin_descriptor {
             clap_version: self.framework_version,
             id: self.id.as_ptr(),
             name: self.name.as_ptr(),
@@ -219,7 +239,9 @@ impl<'desc> PluginDescriptor<'desc> {
             version: self.version.as_ptr(),
             description: self.description.as_ptr(),
             features,
-        }
+        };
+        println!("RAW DESCRIPTOR: {raw:#?}");
+        raw
     }
 }
 impl From<PluginDescriptor<'_>> for clap_plugin_descriptor {
@@ -228,12 +250,19 @@ impl From<PluginDescriptor<'_>> for clap_plugin_descriptor {
     }
 }
 pub trait PluginPrototype<'host>: AbstractPrototype<'host, Base = clap_plugin> {
-    fn get_descriptor(&self) -> &PluginDescriptor;
+    fn get_descriptor(&self) -> PluginDescriptor<'_>;
     fn get_id(&self) -> &PluginID {
         self.get_descriptor().id
     }
-    // const DESCRIPTOR: &'static clap_plugin_descriptor;
-    // const ID: &'static ffi::CStr = const { unsafe { ffi::CStr::from_ptr(Self::DESCRIPTOR.id) } };
+    fn sync_main_thread_with_audio_thread(&self, output_events: &clap_output_events) -> bool;
+    fn sync_proc_thread_with_main_thread(&self) -> bool;
+    fn get_extension<Ext>(&self, extension_id: &PluginExtensionID) -> Option<&Ext> {
+        let base = self.as_base();
+        let get_fn = base.get_extension.as_ref()?;
+        let extension = unsafe { get_fn(base, extension_id.as_ptr()) };
+        let extension: *const Ext = extension.cast();
+        unsafe { extension.as_ref() }
+    }
 }
 
 /// Work in progress trait based on my initial integration

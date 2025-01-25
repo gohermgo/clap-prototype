@@ -6,14 +6,3 @@ edition = "2024"
 [dependencies]
 clap-sys.version = "0.5.0"
 clap-proc-tools.path = "clap-proc-tools"
-
-# [workspace]
-# members = ["clap-proc-tools", "ffi-wrap"]
-# package = { version = "0.0.1", edition = "2024" }
-
-# [workspace.dependencies]
-# syn = { version = "2", features = ["full"] }
-# quote = "1"
-# proc-macro2 = "1"
-
-

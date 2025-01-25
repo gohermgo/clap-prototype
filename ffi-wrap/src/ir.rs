@@ -54,9 +54,19 @@ impl EzCStr {
             function_body: parse_quote! { &self.0 },
             target_type: parse_quote! { ::core::ffi::CStr },
         };
+        let partial_eq_impl = quote! {
+            impl ::core::cmp::PartialEq<::core::ffi::CStr> for #name {
+                #[inline]
+                fn eq(&self, rhs: &::core::ffi::CStr) -> bool {
+                    ::core::cmp::PartialEq::eq(self.as_ref(), rhs)
+                }
+            }
+        };
         quote! {
+            #[derive(Debug)]
             #r#struct
             #as_ref_impl
+            #partial_eq_impl
             #deref_impl
         }
     }
