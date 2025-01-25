@@ -1,45 +1,39 @@
 use super::AbstractPrototype;
 use clap_sys::plugin::clap_plugin;
+use std::sync::Arc;
 use std::{borrow, ffi, ops, ptr};
 pub trait PluginDescriptorComponent {
     type Raw;
     fn as_raw(&self) -> Self::Raw;
 }
+impl<T> PluginDescriptorComponent for Arc<T>
+where
+    T: PluginDescriptorComponent,
+{
+    type Raw = T::Raw;
+    fn as_raw(&self) -> Self::Raw {
+        T::as_raw(self.as_ref())
+    }
+}
 macro_rules! string_component {
     ($t:tt) => {
-        #[repr(transparent)]
-        pub struct $t(std::ffi::CString);
-        impl std::borrow::Borrow<std::ffi::CStr> for $t {
-            fn borrow(&self) -> &std::ffi::CStr {
-                &self.0
-            }
-        }
-        impl std::ops::Deref for $t {
-            type Target = std::ffi::CString;
-            fn deref(&self) -> &Self::Target {
-                &self.0
-            }
-        }
-        impl AsRef<std::ffi::CStr> for $t {
-            fn as_ref(&self) -> &std::ffi::CStr {
-                std::borrow::Borrow::borrow(self)
-            }
-        }
+        ::clap_proc_tools::ez_c_str! { $t }
         impl PluginDescriptorComponent for $t {
             type Raw = *const i8;
             fn as_raw(&self) -> Self::Raw {
-                self.0.as_ptr()
+                self.as_ref().as_ptr()
             }
         }
     };
 }
-string_component!(PluginID);
-string_component!(PluginName);
-string_component!(PluginVendor);
-string_component!(PluginURL);
-string_component!(PluginVersion);
-string_component!(PluginDescription);
-pub enum PluginFeature {
+string_component! { PluginID }
+string_component! { PluginName }
+string_component! { PluginVendor }
+string_component! { PluginURL }
+string_component! { PluginVersion }
+string_component! { PluginDescription }
+string_component! { PluginFeature }
+pub enum PluginFeatureKind {
     Instrument,
     AudioEffect,
     NoteEffect,
@@ -80,10 +74,16 @@ pub enum PluginFeature {
     Surround,
     Ambisonic,
 }
-impl PluginFeature {
-    fn evaluate(&self) -> &'static ffi::CStr {
+impl From<PluginFeatureKind> for Arc<PluginFeature> {
+    #[inline]
+    fn from(value: PluginFeatureKind) -> Self {
+        PluginFeature::from_c_str(value.as_c_str()).into()
+    }
+}
+impl PluginFeatureKind {
+    fn as_c_str(&self) -> &'static ffi::CStr {
+        use PluginFeatureKind::*;
         use clap_sys::plugin_features::*;
-        use PluginFeature::*;
         match self {
             Instrument => CLAP_PLUGIN_FEATURE_INSTRUMENT,
             AudioEffect => CLAP_PLUGIN_FEATURE_AUDIO_EFFECT,
@@ -127,48 +127,48 @@ impl PluginFeature {
         }
     }
 }
-impl borrow::Borrow<ffi::CStr> for PluginFeature {
+impl borrow::Borrow<ffi::CStr> for PluginFeatureKind {
     fn borrow(&self) -> &ffi::CStr {
-        self.evaluate()
+        self.as_c_str()
     }
 }
-impl PluginDescriptorComponent for PluginFeature {
+impl PluginDescriptorComponent for PluginFeatureKind {
     type Raw = *const i8;
     fn as_raw(&self) -> Self::Raw {
-        self.evaluate().as_ptr()
+        self.as_c_str().as_ptr()
     }
 }
 pub struct PluginDescriptor {
     pub framework_version: clap_version,
-    pub id: PluginID,
-    pub name: PluginName,
-    pub vendor: PluginVendor,
-    pub url: PluginURL,
-    pub manual_url: PluginURL,
-    pub support_url: PluginURL,
-    pub version: PluginVersion,
-    pub description: PluginDescription,
-    pub features: Vec<PluginFeature>,
+    pub id: Arc<PluginID>,
+    pub name: Arc<PluginName>,
+    pub vendor: Arc<PluginVendor>,
+    pub url: Arc<PluginURL>,
+    pub manual_url: Arc<PluginURL>,
+    pub support_url: Arc<PluginURL>,
+    pub version: Arc<PluginVersion>,
+    pub description: Arc<PluginDescription>,
+    pub features: Vec<PluginFeatureKind>,
 }
 impl PluginDescriptor {
     pub fn create_raw(&self) -> clap_plugin_descriptor {
         let mut features: Vec<*const i8> = self
             .features
             .iter()
-            .map(|feature| feature.evaluate().as_ptr())
+            .map(|feature| feature.as_c_str().as_ptr())
             .collect();
         features.push(ptr::null());
         let features = features.as_ptr();
         clap_plugin_descriptor {
             clap_version: self.framework_version,
-            id: self.id.as_ptr(),
-            name: self.name.as_ptr(),
-            vendor: self.vendor.as_ptr(),
-            url: self.url.as_ptr(),
-            manual_url: self.manual_url.as_ptr(),
-            support_url: self.support_url.as_ptr(),
-            version: self.version.as_ptr(),
-            description: self.description.as_ptr(),
+            id: self.id.as_raw(),
+            name: self.name.as_raw(),
+            vendor: self.vendor.as_raw(),
+            url: self.url.as_raw(),
+            manual_url: self.manual_url.as_raw(),
+            support_url: self.support_url.as_raw(),
+            version: self.version.as_raw(),
+            description: self.description.as_raw(),
             features,
         }
     }
