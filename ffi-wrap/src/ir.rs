@@ -106,6 +106,16 @@ impl EzCStr {
                 pub const fn from_c_str(s: &::core::ffi::CStr) -> &#name {
                     unsafe { ::core::mem::transmute(s) }
                 }
+                #[inline(always)]
+                pub const unsafe fn from_ptr<'a>(ptr: *const ::core::ffi::c_char) -> &'a #name {
+                    let cs = unsafe { ::core::ffi::CStr::from_ptr(ptr) };
+                    #name::from_c_str(cs)
+                }
+                #[inline(always)]
+                pub const unsafe fn from_bytes_with_nul_unchecked(bytes: &[u8]) -> &#name {
+                    let cs = unsafe { ::core::ffi::CStr::from_bytes_with_nul_unchecked(bytes) };
+                    #name::from_c_str(cs)
+                }
             }
         };
         let mut buf = self.gen_inner(wrapper);

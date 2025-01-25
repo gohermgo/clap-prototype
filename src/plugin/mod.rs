@@ -1,7 +1,9 @@
+use core::ops::Deref;
+
 use super::AbstractPrototype;
 use clap_sys::plugin::clap_plugin;
+use clap_sys::string_sizes::CLAP_NAME_SIZE;
 use std::sync::Arc;
-use std::{borrow, ffi, ops, ptr};
 use std::{borrow, ffi, ptr};
 pub trait PluginDescriptorComponent {
     type Pointer;
@@ -133,57 +135,102 @@ impl borrow::Borrow<ffi::CStr> for PluginFeatureKind {
         self.as_c_str()
     }
 }
-pub struct PluginDescriptor {
+pub struct PluginDescriptor<'desc> {
     pub framework_version: clap_version,
-    pub id: Arc<PluginID>,
-    pub name: Arc<PluginName>,
-    pub vendor: Arc<PluginVendor>,
-    pub url: Arc<PluginURL>,
-    pub manual_url: Arc<PluginURL>,
-    pub support_url: Arc<PluginURL>,
-    pub version: Arc<PluginVersion>,
-    pub description: Arc<PluginDescription>,
-    pub features: Vec<PluginFeatureKind>,
+    pub id: &'desc PluginID,
+    pub name: &'desc PluginName,
+    pub vendor: &'desc PluginVendor,
+    pub url: &'desc PluginURL,
+    pub manual_url: &'desc PluginURL,
+    pub support_url: &'desc PluginURL,
+    pub version: &'desc PluginVersion,
+    pub description: &'desc PluginDescription,
+    pub features: &'desc [&'desc PluginFeature],
 }
-impl PluginDescriptor {
-    pub fn new() -> Self {}
-    pub fn from_raw(raw: clap_plugin_descriptor) -> Self {
+#[inline(always)]
+fn feature_from_ptr<'desc>(ptr: *const i8) -> Option<&'desc [core::ffi::c_char]> {
+    if ptr.is_null() {
+        return None;
+    }
+
+    let mut len = 0;
+    while len < CLAP_NAME_SIZE
+        && unsafe { ptr.byte_add(len).as_ref() }.is_some_and(|byte| byte != &0)
+    {
+        len += 1;
+    }
+    if len == 0 {
+        return None;
+    }
+
+    let zero_index = len + 1;
+
+    Some(unsafe { core::slice::from_raw_parts(ptr, zero_index) })
+}
+fn feature_slice_from_ptr<'desc>(ptr: *const *const i8) -> Option<&'desc [&'desc PluginFeature]> {
+    let mut rows = 0;
+    let mut characters = 0;
+
+    while let Some(feature) = unsafe { ptr.add(rows).as_ref() }
+        .map(|ptr| unsafe { ptr.byte_add(characters) })
+        .and_then(feature_from_ptr)
+    {
+        characters += feature.len();
+        rows += 1;
+    }
+
+    let slice = unsafe { core::slice::from_raw_parts(ptr, rows) };
+    let slice: &'desc [&'desc PluginFeature] = unsafe { core::mem::transmute(slice) };
+    Some(slice)
+}
+fn clap_features_from_raw<'desc>(
+    clap_plugin_descriptor { features, .. }: &'desc clap_plugin_descriptor,
+) -> &'desc [&'desc PluginFeature] {
+    // CLAP_NAME_SIZE
+    todo!()
+}
+impl<'desc> PluginDescriptor<'desc> {
+    pub fn from_raw(raw: &'desc clap_plugin_descriptor) -> PluginDescriptor<'desc> {
         Self {
             framework_version: raw.clap_version,
-            id: PluginID::from_raw(raw.id),
+            id: unsafe { PluginID::from_ptr(raw.id) },
+            name: unsafe { PluginName::from_ptr(raw.name) },
+            vendor: unsafe { PluginVendor::from_ptr(raw.vendor) },
+            url: unsafe { PluginURL::from_ptr(raw.url) },
+            manual_url: unsafe { PluginURL::from_ptr(raw.manual_url) },
+            support_url: unsafe { PluginURL::from_ptr(raw.support_url) },
+            version: unsafe { PluginVersion::from_ptr(raw.version) },
+            description: unsafe { PluginDescription::from_ptr(raw.version) },
+            features: feature_slice_from_ptr(raw.features).expect("failure to parse features"),
         }
     }
     pub fn into_raw(self) -> clap_plugin_descriptor {
-        let mut features: Vec<*const i8> = self
-            .features
-            .iter()
-            .map(|feature| feature.as_c_str().as_ptr())
-            .collect();
-        features.push(ptr::null());
-        let features = features.as_ptr();
+        let p = self.features.as_ptr();
+        let features =
+            unsafe { core::mem::transmute::<*const &PluginFeature, *const *const i8>(p) };
         clap_plugin_descriptor {
             clap_version: self.framework_version,
-            id: self.id.as_raw(),
-            name: self.name.as_raw(),
-            vendor: self.vendor.as_raw(),
-            url: self.url.as_raw(),
-            manual_url: self.manual_url.as_raw(),
-            support_url: self.support_url.as_raw(),
-            version: self.version.as_raw(),
-            description: self.description.as_raw(),
+            id: self.id.as_ptr(),
+            name: self.name.as_ptr(),
+            vendor: self.vendor.as_ptr(),
+            url: self.url.as_ptr(),
+            manual_url: self.manual_url.as_ptr(),
+            support_url: self.support_url.as_ptr(),
+            version: self.version.as_ptr(),
+            description: self.description.as_ptr(),
             features,
         }
     }
 }
-impl From<PluginDescriptor> for clap_plugin_descriptor {
-    fn from(value: PluginDescriptor) -> Self {
+impl From<PluginDescriptor<'_>> for clap_plugin_descriptor {
+    fn from(value: PluginDescriptor<'_>) -> Self {
         value.into_raw()
     }
 }
 pub trait PluginPrototype<'host>: AbstractPrototype<'host, Base = clap_plugin> {
     fn get_descriptor(&self) -> &PluginDescriptor;
     fn get_id(&self) -> &PluginID {
-        &self.get_descriptor().id
+        self.get_descriptor().id
     }
     // const DESCRIPTOR: &'static clap_plugin_descriptor;
     // const ID: &'static ffi::CStr = const { unsafe { ffi::CStr::from_ptr(Self::DESCRIPTOR.id) } };
