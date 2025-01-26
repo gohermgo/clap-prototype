@@ -12,9 +12,14 @@ pub mod factory;
 pub mod plugin;
 pub trait AbstractPrototype<'host> {
     type Base: 'host;
-    // #[allow(clippy::missing_safety_doc)]
-    // unsafe fn from_raw_base<'ptr>(base_ptr: *const Self::Base) -> Option<&'ptr Self>;
     fn as_base(&self) -> &Self::Base;
+}
+pub struct AbstractPointer<'host, A: ?Sized>(::core::marker::PhantomData<&'host ()>, *const A);
+impl<'host, A: ?Sized> ::core::ops::Deref for AbstractPointer<'host, A> {
+    type Target = A;
+    fn deref(&self) -> &Self::Target {
+        unsafe { self.1.as_ref().expect("abstract pointer") }
+    }
 }
 /// We force i8 representation here just to have some
 /// Idea at this point:
