@@ -180,34 +180,23 @@ impl RawPluginFeatureSet {
 
         if row == 0 { None } else { Some(row) }
     }
-    pub fn from_ptr(ptr: *const *const c_char) -> Option<RawPluginFeatureSet> {
+    pub const fn from_ptr(ptr: *const *const c_char) -> Option<RawPluginFeatureSet> {
         if RawPluginFeatureSet(ptr).calculate_length().is_none() {
             None
         } else {
-            Some(unsafe { transmute(ptr) })
+            Some(RawPluginFeatureSet(ptr))
         }
     }
-}
-fn feature_slice_from_ptr<'desc>(ptr: *const *const i8) -> Option<&'desc [&'desc PluginFeature]> {
-    let mut rows = 0;
-    let mut characters = 0;
-
-    fn next_feature<'host>(
-        set_base: *const *const i8,
-        row_offset: usize,
-    ) -> Option<&'host PluginFeature> {
-        // Offset the base by rows, incrementing
-        // a *const i8-sized unit per row-offset,
-        // effectively offsetting to the next feature
-        let row_base = unsafe { set_base.add(row_offset).as_ref() }?;
-        feature_from_ptr(*row_base)
+    pub const fn as_slice(&self) -> &[RawPluginFeature] {
+        let len = self.calculate_length();
+        unsafe {
+            let len = len.unwrap_unchecked();
+            let ptr_slice = core::ptr::slice_from_raw_parts(self.0, len);
+            let slice: *const [RawPluginFeature] = transmute(ptr_slice);
+            slice.as_ref().unwrap_unchecked()
+        }
     }
-
-    while let Some(_) = next_feature(ptr, rows) {
-        rows += 1;
+    pub fn as_ptr(&self) -> *const *const c_char {
+        self.0
     }
-
-    let slice: &[*const i8] = unsafe { core::slice::from_raw_parts(ptr, rows) };
-    let slice: &'desc [&'desc PluginFeature] = unsafe { core::mem::transmute(slice) };
-    Some(slice)
 }

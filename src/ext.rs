@@ -5,7 +5,13 @@ use clap_sys::plugin::{clap_plugin, clap_plugin_descriptor};
 use std::pin;
 use std::ptr::NonNull;
 use std::sync::Arc;
+
+pub mod audio_ports;
 pub mod params;
+pub mod state;
+
+pub use clap_proc_tools::extends;
+
 #[repr(transparent)]
 pub struct ExtensionPointer<'host, E: AbstractPrototype<'host> + ?Sized>(
     *const E::Base,
@@ -16,20 +22,24 @@ impl<'host, B, E: ExtensionPrototype<'host, Base = B>> From<*const B>
 {
     #[inline]
     fn from(value: *const B) -> Self {
+        println!("yowch");
         ExtensionPointer(value, ::core::marker::PhantomData)
+    }
+}
+impl<'host, B, E: ExtensionPrototype<'host, Base = B>> From<&E> for ExtensionPointer<'host, E> {
+    #[inline]
+    fn from(value: &E) -> Self {
+        let base = value.as_base();
+        ExtensionPointer::from(base as *const B)
     }
 }
 impl<'host, E> ::core::ops::Deref for ExtensionPointer<'host, E>
 where
     E: ExtensionPrototype<'host>,
 {
-    type Target = E;
+    type Target = E::Base;
     fn deref(&self) -> &Self::Target {
-        unsafe {
-            (self.0 as *const E)
-                .as_ref()
-                .expect("ExtensionPointer deref")
-        }
+        unsafe { self.0.as_ref().expect("ExtensionPointer deref") }
     }
 }
 pub trait ExtensionPrototype<'host>: AbstractPrototype<'host> {

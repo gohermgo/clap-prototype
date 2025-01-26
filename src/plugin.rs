@@ -6,7 +6,9 @@ pub use descriptor::PluginDescriptor;
 pub use str_types::*;
 
 use crate::ext::ExtensionPointer;
+use crate::ext::audio_ports::PluginAudioPortsPrototype;
 use crate::ext::params::PluginParamsPrototype;
+use crate::ext::state::PluginStatePrototype;
 use crate::{AbstractPointer, AbstractPrototype};
 
 use clap_sys::events::clap_output_events;
@@ -14,6 +16,10 @@ use clap_sys::plugin::clap_plugin;
 use clap_sys::string_sizes::CLAP_NAME_SIZE;
 
 pub trait PluginPrototype<'host>: AbstractPrototype<'host, Base = clap_plugin> {
+    type PluginParamsExtension: PluginParamsPrototype<'host>;
+    type PluginAudioPortsExtension: PluginAudioPortsPrototype<'host>;
+    type PluginStateExtension: PluginStatePrototype<'host>;
+
     fn get_descriptor(&self) -> PluginDescriptor<'_>;
     fn get_id(&self) -> &PluginID {
         self.get_descriptor().id
@@ -27,10 +33,13 @@ pub trait PluginPrototype<'host>: AbstractPrototype<'host, Base = clap_plugin> {
         let extension: *const Ext = extension.cast();
         unsafe { extension.as_ref() }
     }
-    fn get_plugin_params_extension<P: ?Sized>(&self) -> Option<ExtensionPointer<'host, P>>
-    where
-        P: PluginParamsPrototype<'host, Parent = Self>,
-    {
+    fn get_params_extension(&self) -> Option<&Self::PluginParamsExtension> {
+        None
+    }
+    fn get_audio_ports_extension(&self) -> Option<&Self::PluginAudioPortsExtension> {
+        None
+    }
+    fn get_state_extension(&self) -> Option<&Self::PluginStateExtension> {
         None
     }
 }

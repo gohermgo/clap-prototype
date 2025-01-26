@@ -33,9 +33,6 @@ impl<'desc> PluginDescriptor<'desc> {
         }
     }
     pub fn into_raw(self) -> clap_plugin_descriptor {
-        let p = self.features.as_ptr();
-        let features =
-            unsafe { core::mem::transmute::<*const &PluginFeature, *const *const i8>(p) };
         let raw = clap_plugin_descriptor {
             clap_version: self.framework_version,
             id: self.id.as_ptr(),
@@ -46,7 +43,7 @@ impl<'desc> PluginDescriptor<'desc> {
             support_url: self.support_url.as_ptr(),
             version: self.version.as_ptr(),
             description: self.description.as_ptr(),
-            features,
+            features: self.features.as_ptr(),
         };
         println!("RAW DESCRIPTOR: {raw:#?}");
         raw

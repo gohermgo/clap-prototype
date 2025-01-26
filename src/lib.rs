@@ -15,7 +15,7 @@ pub trait AbstractPrototype<'host> {
     fn as_base(&self) -> &Self::Base;
 }
 pub struct AbstractPointer<'host, A: ?Sized>(::core::marker::PhantomData<&'host ()>, *const A);
-impl<'host, A: ?Sized> ::core::ops::Deref for AbstractPointer<'host, A> {
+impl<A: ?Sized> ::core::ops::Deref for AbstractPointer<'_, A> {
     type Target = A;
     fn deref(&self) -> &Self::Target {
         unsafe { self.1.as_ref().expect("abstract pointer") }
