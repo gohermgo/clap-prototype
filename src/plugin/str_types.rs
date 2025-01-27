@@ -1,4 +1,5 @@
 use core::ffi::c_char;
+use core::fmt::{Display, Formatter, Result as FmtResult};
 use core::mem::transmute;
 use std::sync::Arc;
 
@@ -36,6 +37,52 @@ macro_rules! string_component {
 string_component! { PluginParameterValueText }
 string_component! { PluginID }
 string_component! { PluginName }
+
+#[derive(Debug)]
+pub enum FromPtrError {
+    Malformed(usize),
+    MissingNul,
+}
+
+impl Display for FromPtrError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        let s = "Failed to convert from raw-pointer to plugin-path: ";
+        match self {
+            FromPtrError::Malformed(n) => f.write_fmt(format_args!(
+                "{s} traversed {n} bytes before failing to dereference a byte"
+            )),
+            FromPtrError::MissingNul => f.write_fmt(format_args!("{s} unterminated string")),
+        }
+    }
+}
+fn try_from_inner<'s, T: ?Sized, const N: usize>(
+    ptr: *const ::core::ffi::c_char,
+    new: unsafe fn(*const ::core::ffi::c_char) -> &'s T,
+) -> Result<&'s T, FromPtrError> {
+    // Walk the pointer, we do not know if
+    // the entire is valid
+    for offset in 0..N {
+        // If we can dereference safely the byte
+        if let Some(val) = (unsafe { ptr.byte_add(offset).as_ref() }) {
+            // Check if nul and early return
+            if val == &0i8 {
+                return Ok(new(ptr));
+            }
+        } else {
+            // We could not deref, or find nul
+            // so assume the string is malformed
+            return Err(FromPtrError::Malformed(offset));
+        }
+    }
+    // Tail return
+    Err(FromPtrError::MissingNul)
+}
+impl<'s> TryFrom<*const ::core::ffi::c_char> for &'s PluginName {
+    type Error = FromPtrError;
+    fn try_from(value: *const ::core::ffi::c_char) -> Result<Self, Self::Error> {
+        try_from_inner::<PluginName, CLAP_NAME_SIZE>(value, PluginName::from_ptr)
+    }
+}
 impl PluginName {
     pub const fn to_fixed(&self) -> [i8; CLAP_NAME_SIZE] {
         to_fixed(self.0.as_ptr(), self.0.count_bytes())
@@ -46,6 +93,12 @@ string_component! { PluginURL }
 string_component! { PluginVersion }
 string_component! { PluginDescription }
 string_component! { PluginPath }
+impl<'s> TryFrom<*const ::core::ffi::c_char> for &'s PluginPath {
+    type Error = FromPtrError;
+    fn try_from(value: *const ::core::ffi::c_char) -> Result<Self, Self::Error> {
+        try_from_inner::<PluginPath, CLAP_PATH_SIZE>(value, PluginPath::from_ptr)
+    }
+}
 impl PluginPath {
     pub const fn to_fixed(&self) -> [i8; CLAP_PATH_SIZE] {
         to_fixed(self.0.as_ptr(), self.0.count_bytes())

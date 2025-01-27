@@ -14,6 +14,11 @@ pub fn extends(attrs: TokenStream, input: TokenStream) -> TokenStream {
 }
 
 #[proc_macro]
+pub fn entrypoint(input: TokenStream) -> TokenStream {
+    ::ffi_wrap::entrypoint(input.into()).into()
+}
+
+#[proc_macro]
 pub fn plugin_parameter(input: TokenStream) -> TokenStream {
     ::ffi_wrap::plugin_parameter(input.into()).into()
 }

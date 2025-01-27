@@ -6,6 +6,11 @@ pub fn c_str(input: TokenStream2) -> TokenStream2 {
     quote! { #item }
 }
 
+pub fn entrypoint(input: TokenStream2) -> TokenStream2 {
+    let item = clap_proc_ir::parse_plugin_entrypoint(input);
+    quote! {#item}
+}
+
 pub fn extension(attrs: TokenStream2, input: TokenStream2) -> TokenStream2 {
     let item = clap_proc_ir::parse_extension(attrs, input);
     quote! { #item }
