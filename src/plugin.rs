@@ -2,6 +2,8 @@ pub(crate) mod descriptor;
 pub mod features;
 pub(crate) mod str_types;
 
+use std::ptr::NonNull;
+
 pub use descriptor::PluginDescriptor;
 pub use str_types::*;
 
@@ -19,20 +21,14 @@ pub trait PluginPrototype<'host>: AbstractPrototype<'host, Base = clap_plugin> {
     type PluginParamsExtension: PluginParamsPrototype<'host>;
     type PluginAudioPortsExtension: PluginAudioPortsPrototype<'host>;
     type PluginStateExtension: PluginStatePrototype<'host>;
-
+    /// Sorry had to
+    fn initialize(&mut self) -> bool;
     fn get_descriptor(&self) -> PluginDescriptor<'_>;
     fn get_id(&self) -> &PluginID {
         self.get_descriptor().id
     }
     fn sync_main_thread_with_audio_thread(&self, output_events: &clap_output_events) -> bool;
     fn sync_proc_thread_with_main_thread(&self) -> bool;
-    fn get_extension<Ext>(&self, extension_id: &PluginExtensionID) -> Option<&Ext> {
-        let base = self.as_base();
-        let get_fn = base.get_extension.as_ref()?;
-        let extension = unsafe { get_fn(base, extension_id.as_ptr()) };
-        let extension: *const Ext = extension.cast();
-        unsafe { extension.as_ref() }
-    }
     fn get_params_extension(&self) -> Option<&Self::PluginParamsExtension> {
         None
     }

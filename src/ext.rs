@@ -11,7 +11,6 @@ pub use clap_proc_tools::extends;
 impl<'host, B, E: ExtensionPrototype<'host, Base = B>> From<*const B> for ProtoPtr<'host, E> {
     #[inline]
     fn from(value: *const B) -> Self {
-        println!("yowch");
         ProtoPtr(value, ::core::marker::PhantomData)
     }
 }
@@ -27,6 +26,7 @@ where
     E: ExtensionPrototype<'host>,
 {
     type Target = E::Base;
+    #[inline]
     fn deref(&self) -> &Self::Target {
         unsafe { self.0.as_ref().expect("ExtensionPointer deref") }
     }
