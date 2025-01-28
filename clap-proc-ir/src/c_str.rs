@@ -22,7 +22,6 @@ pub struct CStr {
 impl Parse for CStr {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let name: Ident = input.parse()?;
-        println!("Parsed new EzCStr {name:?}");
         let mut generics = None;
         if input.peek(Token![<]) {
             let generic_arguments = input.parse()?;
@@ -34,7 +33,6 @@ impl Parse for CStr {
 impl CStr {
     #[inline(always)]
     fn gen_inner(&self, r#struct: WrapperDefinition<'_>) -> TokenStream2 {
-        println!("Generating EzCStr");
         let CStr { name, .. } = self;
         let as_ref_impl = AsRefImpl {
             lifetime_generic: None,
@@ -73,7 +71,6 @@ impl CStr {
     }
     #[inline(always)]
     fn reference_wrapper(&self) -> WrapperDefinition<'_> {
-        println!("Generating reference wrapper for EzCStr");
         WrapperDefinition {
             lifetime: Some(parse_quote!('a)),
             name: &self.name,
@@ -85,7 +82,6 @@ impl CStr {
     }
     #[inline(always)]
     fn unsized_wrapper(&self) -> WrapperDefinition<'_> {
-        println!("Generating unsized wrapper for EzCStr");
         WrapperDefinition {
             name: &self.name,
             wrapped_type: parse_quote! { ::core::ffi::CStr },
