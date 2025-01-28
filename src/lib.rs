@@ -1,3 +1,5 @@
+pub use clap_proc_tools::entrypoint;
+
 use clap_sys::process::{
     CLAP_PROCESS_CONTINUE, CLAP_PROCESS_CONTINUE_IF_NOT_QUIET, CLAP_PROCESS_ERROR,
     CLAP_PROCESS_SLEEP, CLAP_PROCESS_TAIL, clap_process_status,

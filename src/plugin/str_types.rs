@@ -63,10 +63,10 @@ fn try_from_inner<'s, T: ?Sized, const N: usize>(
     // the entire is valid
     for offset in 0..N {
         // If we can dereference safely the byte
-        if let Some(val) = (unsafe { ptr.byte_add(offset).as_ref() }) {
+        if let Some(val) = unsafe { ptr.byte_add(offset).as_ref() } {
             // Check if nul and early return
             if val == &0i8 {
-                return Ok(new(ptr));
+                return Ok(unsafe { new(ptr) });
             }
         } else {
             // We could not deref, or find nul
@@ -77,7 +77,7 @@ fn try_from_inner<'s, T: ?Sized, const N: usize>(
     // Tail return
     Err(FromPtrError::MissingNul)
 }
-impl<'s> TryFrom<*const ::core::ffi::c_char> for &'s PluginName {
+impl TryFrom<*const ::core::ffi::c_char> for &PluginName {
     type Error = FromPtrError;
     fn try_from(value: *const ::core::ffi::c_char) -> Result<Self, Self::Error> {
         try_from_inner::<PluginName, CLAP_NAME_SIZE>(value, PluginName::from_ptr)
@@ -93,7 +93,7 @@ string_component! { PluginURL }
 string_component! { PluginVersion }
 string_component! { PluginDescription }
 string_component! { PluginPath }
-impl<'s> TryFrom<*const ::core::ffi::c_char> for &'s PluginPath {
+impl TryFrom<*const ::core::ffi::c_char> for &PluginPath {
     type Error = FromPtrError;
     fn try_from(value: *const ::core::ffi::c_char) -> Result<Self, Self::Error> {
         try_from_inner::<PluginPath, CLAP_PATH_SIZE>(value, PluginPath::from_ptr)

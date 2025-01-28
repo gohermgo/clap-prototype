@@ -11,7 +11,6 @@ pub mod params;
 pub mod state;
 
 pub use clap_proc_tools::extends;
-
 #[repr(transparent)]
 pub struct ExtensionPointer<'host, E: AbstractPrototype<'host> + ?Sized>(
     *const E::Base,
@@ -22,7 +21,6 @@ impl<'host, B, E: ExtensionPrototype<'host, Base = B>> From<*const B>
 {
     #[inline]
     fn from(value: *const B) -> Self {
-        println!("yowch");
         ExtensionPointer(value, ::core::marker::PhantomData)
     }
 }
@@ -38,6 +36,7 @@ where
     E: ExtensionPrototype<'host>,
 {
     type Target = E::Base;
+    #[inline]
     fn deref(&self) -> &Self::Target {
         unsafe { self.0.as_ref().expect("ExtensionPointer deref") }
     }
