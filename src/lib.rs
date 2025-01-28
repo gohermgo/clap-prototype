@@ -18,6 +18,36 @@ pub struct ProtoPtr<'host, E: AbstractPrototype<'host> + ?Sized>(
     *const E::Base,
     ::core::marker::PhantomData<&'host ()>,
 );
+
+impl<'host, E> ::core::ops::Deref for ProtoPtr<'host, E>
+where
+    E: AbstractPrototype<'host>,
+{
+    type Target = E::Base;
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        unsafe { self.0.as_ref().expect("ExtensionPointer deref") }
+    }
+}
+impl<'host, P> From<*const P::Base> for ProtoPtr<'host, P>
+where
+    P: AbstractPrototype<'host>,
+{
+    #[inline]
+    fn from(value: *const P::Base) -> Self {
+        ProtoPtr(value, ::core::marker::PhantomData)
+    }
+}
+impl<'host, P> From<&P> for ProtoPtr<'host, P>
+where
+    P: AbstractPrototype<'host>,
+{
+    #[inline]
+    fn from(value: &P) -> Self {
+        let base = value.as_base();
+        ProtoPtr::from(base as *const _)
+    }
+}
 pub trait AbstractPrototype<'host> {
     type Base: 'host;
     fn as_base(&self) -> &Self::Base;

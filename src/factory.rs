@@ -1,14 +1,10 @@
-use crate::{
-    AbstractPrototype,
-    plugin::{PluginName, PluginPrototype},
-};
+use crate::plugin::{PluginName, PluginPrototype};
 use clap_sys::{
     factory::plugin_factory::clap_plugin_factory,
     host::clap_host,
     plugin::{clap_plugin, clap_plugin_descriptor},
 };
-use core::{ffi::CStr, ptr::null};
-use std::{ffi::c_char, sync::Arc};
+use core::ffi::c_char;
 pub trait PluginFactoryPrototype<'host> {
     type Produced: PluginPrototype<'host, Base = clap_plugin>;
     fn get_plugin_count(&self) -> u32;

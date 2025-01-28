@@ -2,20 +2,16 @@ pub(crate) mod descriptor;
 pub mod features;
 pub(crate) mod str_types;
 
-use std::ptr::NonNull;
-
 pub use descriptor::PluginDescriptor;
 pub use str_types::*;
 
-use crate::ProtoPtr;
+use crate::AbstractPrototype;
 use crate::ext::audio_ports::PluginAudioPortsPrototype;
 use crate::ext::params::PluginParamsPrototype;
 use crate::ext::state::PluginStatePrototype;
-use crate::{AbstractPointer, AbstractPrototype};
 
 use clap_sys::events::clap_output_events;
 use clap_sys::plugin::clap_plugin;
-use clap_sys::string_sizes::CLAP_NAME_SIZE;
 
 pub trait PluginPrototype<'host>: AbstractPrototype<'host, Base = clap_plugin> {
     type PluginParamsExtension: PluginParamsPrototype<'host>;
@@ -189,7 +185,6 @@ impl<'host, P: ClapPlugin<'host>> ClapPlugin<'host> for ClapPluginWrapper<'host,
 // Could potentially make the implementation
 // so simple, that I could run the validator
 // against smaller units and bundles thereof
-use clap_sys::plugin::clap_plugin_descriptor;
 use clap_sys::version::clap_version;
 // #[repr(C)]
 // struct ClapPluginDescriptorBuilder {

@@ -161,47 +161,6 @@ impl AsRef<PluginFeature> for RawPluginFeature {
         self.as_slice()
     }
 }
-#[inline(always)]
-fn feature_from_ptr<'desc>(ptr: *const c_char) -> Option<&'desc PluginFeature> {
-    use core::mem::transmute;
-    use core::ptr::slice_from_raw_parts;
-
-    fn next_character<'desc>(
-        base_ptr: *const c_char,
-        characters_processed: usize,
-    ) -> Option<&'desc c_char> {
-        if characters_processed > CLAP_NAME_SIZE {
-            return None;
-        };
-        unsafe {
-            let character_ptr = base_ptr.add(characters_processed);
-            character_ptr
-                .as_ref()
-                .filter(|character| character.ne(&&0_i8))
-        }
-    }
-
-    if ptr.is_null() {
-        return None;
-    }
-    let mut characters_processed = 0;
-    while next_character(ptr, characters_processed).is_some() {
-        characters_processed += 1;
-    }
-    if characters_processed == 0 {
-        return None;
-    }
-
-    // Ensure we include the null-byte
-    let zero_index = characters_processed + 1;
-
-    let ptr_slice = slice_from_raw_parts(ptr, zero_index);
-
-    unsafe {
-        let feature: *const PluginFeature = transmute(ptr_slice);
-        feature.as_ref()
-    }
-}
 #[repr(transparent)]
 pub struct RawPluginFeatureSet(*const *const c_char);
 impl RawPluginFeatureSet {
