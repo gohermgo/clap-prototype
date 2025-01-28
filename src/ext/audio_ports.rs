@@ -1,4 +1,4 @@
-use crate::ext::{ExtensionPointer, ExtensionPrototype};
+use crate::ext::{ExtensionPrototype, ProtoPtr};
 use crate::plugin::PluginPrototype;
 
 use clap_sys::ext::audio_ports::{clap_audio_port_info, clap_plugin_audio_ports};
@@ -67,11 +67,11 @@ where
         get: Some(get::<P>),
     }
 }
-pub const fn extension_pointer<'host, P>() -> ExtensionPointer<'host, P>
+pub const fn extension_pointer<'host, P>() -> ProtoPtr<'host, P>
 where
     P: PluginAudioPortsPrototype<'host>,
     P::Parent: PluginPrototype<'host, PluginAudioPortsExtension = P>,
 {
     let vt = vtable::<P>() as *const _;
-    ExtensionPointer(vt, ::core::marker::PhantomData)
+    ProtoPtr(vt, ::core::marker::PhantomData)
 }

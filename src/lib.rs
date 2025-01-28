@@ -10,6 +10,12 @@ pub fn add(left: u64, right: u64) -> u64 {
 pub mod ext;
 pub mod factory;
 pub mod plugin;
+
+#[repr(transparent)]
+pub struct ProtoPtr<'host, E: AbstractPrototype<'host> + ?Sized>(
+    *const E::Base,
+    ::core::marker::PhantomData<&'host ()>,
+);
 pub trait AbstractPrototype<'host> {
     type Base: 'host;
     fn as_base(&self) -> &Self::Base;

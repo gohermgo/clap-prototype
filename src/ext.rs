@@ -1,10 +1,6 @@
-use crate::plugin::PluginPrototype;
-//pub mod gui;
-use crate::AbstractPrototype;
+use crate::{AbstractPrototype, ProtoPtr};
 use clap_sys::plugin::{clap_plugin, clap_plugin_descriptor};
-use std::pin;
 use std::ptr::NonNull;
-use std::sync::Arc;
 
 pub mod audio_ports;
 pub mod params;
@@ -12,28 +8,21 @@ pub mod state;
 
 pub use clap_proc_tools::extends;
 
-#[repr(transparent)]
-pub struct ExtensionPointer<'host, E: AbstractPrototype<'host> + ?Sized>(
-    *const E::Base,
-    ::core::marker::PhantomData<&'host ()>,
-);
-impl<'host, B, E: ExtensionPrototype<'host, Base = B>> From<*const B>
-    for ExtensionPointer<'host, E>
-{
+impl<'host, B, E: ExtensionPrototype<'host, Base = B>> From<*const B> for ProtoPtr<'host, E> {
     #[inline]
     fn from(value: *const B) -> Self {
         println!("yowch");
-        ExtensionPointer(value, ::core::marker::PhantomData)
+        ProtoPtr(value, ::core::marker::PhantomData)
     }
 }
-impl<'host, B, E: ExtensionPrototype<'host, Base = B>> From<&E> for ExtensionPointer<'host, E> {
+impl<'host, B, E: ExtensionPrototype<'host, Base = B>> From<&E> for ProtoPtr<'host, E> {
     #[inline]
     fn from(value: &E) -> Self {
         let base = value.as_base();
-        ExtensionPointer::from(base as *const B)
+        ProtoPtr::from(base as *const B)
     }
 }
-impl<'host, E> ::core::ops::Deref for ExtensionPointer<'host, E>
+impl<'host, E> ::core::ops::Deref for ProtoPtr<'host, E>
 where
     E: ExtensionPrototype<'host>,
 {

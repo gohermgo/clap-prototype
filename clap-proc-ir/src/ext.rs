@@ -73,36 +73,36 @@ pub trait Extension {
         }
     }
 }
-pub struct ExtensionPointerType(pub Type);
-impl ExtensionPointerType {
-    pub fn new(extension_ident: &Ident) -> ExtensionPointerType {
+pub struct ProtoPtrType(pub Type);
+impl ProtoPtrType {
+    pub fn new(extension_ident: &Ident) -> ProtoPtrType {
         parse_quote! {
-            ::clap_prototype::ext::ExtensionPointer<'host, #extension_ident<'host>>
+            ::clap_prototype::ProtoPtr<'host, #extension_ident<'host>>
         }
     }
 }
-impl Parse for ExtensionPointerType {
-    fn parse(input: ParseStream) -> syn::Result<ExtensionPointerType> {
+impl Parse for ProtoPtrType {
+    fn parse(input: ParseStream) -> syn::Result<ProtoPtrType> {
         let inner: Type = input.parse()?;
-        Ok(ExtensionPointerType(inner))
+        Ok(ProtoPtrType(inner))
     }
 }
-impl ToTokens for ExtensionPointerType {
+impl ToTokens for ProtoPtrType {
     fn to_tokens(&self, tokens: &mut TokenStream2) {
-        let ExtensionPointerType(inner) = self;
+        let ProtoPtrType(inner) = self;
         tokens.extend(quote! {#inner});
     }
 }
 pub struct ExtensionPointerDefinition {
     pub extension_pointer_ident: Ident,
-    pub extension_pointer_type: ExtensionPointerType,
+    pub extension_pointer_type: ProtoPtrType,
     pub extension_pointer_constructor: ExprCall,
 }
 impl ExtensionPointerDefinition {
     pub fn new<E: Extension>(extension_ident: &Ident) -> ExtensionPointerDefinition {
         ExtensionPointerDefinition {
             extension_pointer_ident: format_ident!("{extension_ident}Extension"),
-            extension_pointer_type: ExtensionPointerType::new(extension_ident),
+            extension_pointer_type: ProtoPtrType::new(extension_ident),
             extension_pointer_constructor: E::extension_pointer_constructor(),
         }
     }

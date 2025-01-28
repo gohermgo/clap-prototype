@@ -1,7 +1,7 @@
 use crate::plugin::PluginParameterValueText;
 use crate::plugin::PluginPrototype;
 
-use super::{ExtensionPointer, ExtensionPrototype};
+use super::{ProtoPtr, ExtensionPrototype};
 pub use clap_proc_tools::plugin_parameter;
 use clap_sys::{
     events::{clap_input_events, clap_output_events},
@@ -175,11 +175,11 @@ where
         flush: Some(flush::<'host, P>),
     }
 }
-pub const fn extension_pointer<'host, P>() -> ExtensionPointer<'host, P>
+pub const fn extension_pointer<'host, P>() -> ProtoPtr<'host, P>
 where
     P: PluginParamsPrototype<'host>,
     P::Parent: PluginPrototype<'host, PluginParamsExtension = P>,
 {
     let vt = vtable::<P>() as *const _;
-    ExtensionPointer(vt, ::core::marker::PhantomData)
+    ProtoPtr(vt, ::core::marker::PhantomData)
 }

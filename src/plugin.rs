@@ -5,7 +5,7 @@ pub(crate) mod str_types;
 pub use descriptor::PluginDescriptor;
 pub use str_types::*;
 
-use crate::ext::ExtensionPointer;
+use crate::ProtoPtr;
 use crate::ext::audio_ports::PluginAudioPortsPrototype;
 use crate::ext::params::PluginParamsPrototype;
 use crate::ext::state::PluginStatePrototype;

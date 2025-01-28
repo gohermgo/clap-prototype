@@ -1,6 +1,6 @@
 use crate::plugin::PluginPrototype;
 
-use super::{ExtensionPointer, ExtensionPrototype};
+use super::{ProtoPtr, ExtensionPrototype};
 pub use clap_proc_tools::plugin_parameter;
 use clap_sys::{
     ext::state::clap_plugin_state,
@@ -65,11 +65,11 @@ where
         load: Some(load::<'host, P>),
     }
 }
-pub const fn extension_pointer<'host, P>() -> ExtensionPointer<'host, P>
+pub const fn extension_pointer<'host, P>() -> ProtoPtr<'host, P>
 where
     P: PluginStatePrototype<'host>,
     P::Parent: PluginPrototype<'host, PluginStateExtension = P>,
 {
     let vt = vtable::<P>() as *const _;
-    ExtensionPointer(vt, ::core::marker::PhantomData)
+    ProtoPtr(vt, ::core::marker::PhantomData)
 }
