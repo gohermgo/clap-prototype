@@ -2,6 +2,7 @@ pub(crate) mod descriptor;
 pub mod features;
 pub(crate) mod str_types;
 
+use clap_sys::ext::state_context::clap_plugin_state_context;
 pub use descriptor::PluginDescriptor;
 pub use str_types::*;
 
@@ -9,6 +10,7 @@ use crate::AbstractPrototype;
 use crate::ext::audio_ports::PluginAudioPortsPrototype;
 use crate::ext::params::PluginParamsPrototype;
 use crate::ext::state::PluginStatePrototype;
+use crate::ext::state_context::PluginStateContextPrototype;
 
 use clap_sys::events::clap_output_events;
 use clap_sys::plugin::clap_plugin;
@@ -34,6 +36,8 @@ pub trait PluginPrototype<'host>: AbstractPrototype<'host, Base = clap_plugin> {
     fn get_state_extension(&self) -> Option<&Self::PluginStateExtension> {
         None
     }
+    type PluginStateContextExtension: PluginStateContextPrototype<'host, Base = clap_plugin_state_context>;
+    fn get_state_context_extension(&self) -> Option<&Self::PluginStateContextExtension>;
 }
 
 /// Work in progress trait based on my initial integration
