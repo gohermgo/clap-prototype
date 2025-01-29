@@ -9,6 +9,7 @@ use std::sync::Arc;
 pub mod audio_ports;
 pub mod params;
 pub mod state;
+pub mod state_context;
 
 pub use clap_proc_tools::extends;
 #[repr(transparent)]

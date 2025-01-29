@@ -1,6 +1,6 @@
 use crate::{
-    AbstractPrototype,
     plugin::{PluginName, PluginPrototype},
+    AbstractPrototype,
 };
 use clap_sys::{
     factory::plugin_factory::clap_plugin_factory,
@@ -72,11 +72,13 @@ where
             return ::core::ptr::null();
         }
     };
-    let Some(plugin) = factory.create_plugin(host, plugin_id) else {
+    // Some really hairy shit coming up
+    let Some(plugin_interface) = factory.create_plugin(host, plugin_id) else {
         println!("NO PLUGIN");
         return ::core::ptr::null();
     };
-    let plugin = Box::leak(Box::new(plugin));
+    // Leak the MF, let's hope
+    let plugin = Box::leak(Box::new(plugin_interface));
     let addr = plugin as *mut _ as *mut ::core::ffi::c_void;
     let vt = unsafe { (plugin as *mut _ as *mut clap_plugin).as_mut() };
     if vt.is_none() {
