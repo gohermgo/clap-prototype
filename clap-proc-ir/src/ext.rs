@@ -1,10 +1,12 @@
 pub mod audio_ports;
 pub mod params;
 pub mod state;
+pub mod state_context;
 
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{ToTokens, format_ident, quote};
 
+use state_context::PluginStateContext;
 use syn::parse::{Parse, ParseStream};
 use syn::{ExprCall, parse_quote};
 
@@ -27,6 +29,9 @@ pub fn parse(attrs: TokenStream2, input: TokenStream2) -> TokenStream2 {
         }
         Ok(ExtensionAttrs { extension }) if extension == "PluginState" => {
             ExtensionTokenizer::<PluginState>::throw_tokenize(input)
+        }
+        Ok(ExtensionAttrs { extension }) if extension == "PluginStateContext" => {
+            ExtensionTokenizer::<PluginStateContext>::throw_tokenize(input)
         }
         Ok(ExtensionAttrs { extension }) => {
             syn::Error::new(extension.span(), "Unrecognized class").to_compile_error()
