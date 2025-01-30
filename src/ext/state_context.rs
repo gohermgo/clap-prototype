@@ -46,14 +46,31 @@ use clap_sys::stream::{clap_istream, clap_ostream};
 
 #[repr(u32)]
 pub enum PluginStateContextVariant {
+    /// suitable for storing and loading a state as a preset
     Preset = CLAP_STATE_CONTEXT_FOR_PRESET,
+
+    /// suitable for duplicating a plugin instance
     Duplicate = CLAP_STATE_CONTEXT_FOR_DUPLICATE,
+    /// suitable for storing and loading a state within a project/song
     Project = CLAP_STATE_CONTEXT_FOR_PROJECT,
 }
 pub trait PluginStateContextPrototype<'host>:
     ExtensionPrototype<'host, Base = clap_plugin_state_context>
 {
+    /// `main-thread`
+    ///
+    /// Saves the plugin state into stream, according to context_type.
+    /// Returns true if the state was correctly saved.
+    ///
+    /// Note that the result may be loaded by both clap_plugin_state.load() and
+    /// clap_plugin_state_context.load().
     fn save(&self, output_stream: &clap_ostream, variant: PluginStateContextVariant) -> bool;
+    /// `main-thread`
+    /// Loads the plugin state from stream, according to context_type.
+    /// Returns true if the state was correctly restored.
+    ///
+    /// Note that the state may have been saved by clap_plugin_state.save() or
+    /// clap_plugin_state_context.save() with a different context_type.
     fn load(&self, input_stream: &clap_istream, variant: PluginStateContextVariant) -> bool;
 }
 fn get_ext<'host, 'ext, P>(ptr: *const clap_plugin) -> Option<&'ext P>
