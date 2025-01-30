@@ -1,5 +1,5 @@
+use crate::plugin::HasExtension;
 use crate::plugin::PluginParameterValueText;
-use crate::plugin::PluginPrototype;
 
 use super::{ExtensionPrototype, ProtoPtr};
 pub use clap_proc_tools::plugin_parameter;
@@ -37,39 +37,39 @@ pub trait PluginParamsPrototype<'host>:
         out: &clap_output_events,
     ) -> Option<()>;
 }
-fn get_ext<'host, 'ext, P>(ptr: *const clap_plugin) -> Option<&'ext P>
+fn get_ext<'host, 'ext, P, E>(ptr: *const clap_plugin) -> Option<&'ext E>
 where
-    P: PluginParamsPrototype<'host>,
-    P::Parent: PluginPrototype<'host>,
+    P: HasExtension<'host, clap_plugin_params, ExtensionType = E> + 'ext,
+    E: PluginParamsPrototype<'host, Parent = P>,
     'host: 'ext,
 {
     println!("PARAMS ACCESS");
     let plugin = unsafe { ptr.as_ref() }?;
-    let parent = unsafe { (plugin.plugin_data as *const P::Parent).as_ref() }?;
+    let parent = unsafe { (plugin.plugin_data as *const P).as_ref() }?;
     parent.get_params_extension()
 }
-unsafe extern "C" fn count<'host, P>(plugin_ptr: *const clap_plugin) -> u32
+unsafe extern "C" fn count<'host, P, E>(plugin_ptr: *const clap_plugin) -> u32
 where
-    P: PluginParamsPrototype<'host>,
-    P::Parent: PluginPrototype<'host>,
+    P: HasExtension<'host, clap_plugin_params, ExtensionType = E>,
+    E: PluginParamsPrototype<'host, Parent = P>,
 {
     println!("PARAMS COUNT EXT");
-    let Some(plugin) = get_ext::<P>(plugin_ptr) else {
+    let Some(plugin) = get_ext::<P, E>(plugin_ptr) else {
         return 0;
     };
     plugin.count()
 }
-unsafe extern "C" fn get_info<'host, P>(
+unsafe extern "C" fn get_info<'host, P, E>(
     plugin_ptr: *const clap_plugin,
     param_index: u32,
     param_info_ptr: *mut clap_param_info,
 ) -> bool
 where
-    P: PluginParamsPrototype<'host>,
-    P::Parent: PluginPrototype<'host>,
+    P: HasExtension<'host, clap_plugin_params, ExtensionType = E>,
+    E: PluginParamsPrototype<'host, Parent = P>,
 {
     println!("PARAMS GET INFO EXT");
-    let Some(plugin) = get_ext::<P>(plugin_ptr) else {
+    let Some(plugin) = get_ext::<P, E>(plugin_ptr) else {
         return false;
     };
     if let Some(info) = plugin.get_info(param_index) {
@@ -78,16 +78,16 @@ where
     }
     false
 }
-unsafe extern "C" fn get_value<'host, P>(
+unsafe extern "C" fn get_value<'host, P, E>(
     plugin_ptr: *const clap_plugin,
     param_id: clap_id,
     out_value: *mut f64,
 ) -> bool
 where
-    P: PluginParamsPrototype<'host>,
-    P::Parent: PluginPrototype<'host>,
+    P: HasExtension<'host, clap_plugin_params, ExtensionType = E>,
+    E: PluginParamsPrototype<'host, Parent = P>,
 {
-    let Some(plugin) = get_ext::<P>(plugin_ptr) else {
+    let Some(plugin) = get_ext::<P, E>(plugin_ptr) else {
         return false;
     };
     if let Some(value) = plugin.get_value(param_id) {
@@ -96,7 +96,7 @@ where
     };
     false
 }
-unsafe extern "C" fn value_to_text<'host, P>(
+unsafe extern "C" fn value_to_text<'host, P, E>(
     plugin_ptr: *const clap_plugin,
     param_id: clap_id,
     value: f64,
@@ -104,10 +104,10 @@ unsafe extern "C" fn value_to_text<'host, P>(
     out_buffer_capacity: u32,
 ) -> bool
 where
-    P: PluginParamsPrototype<'host>,
-    P::Parent: PluginPrototype<'host>,
+    P: HasExtension<'host, clap_plugin_params, ExtensionType = E>,
+    E: PluginParamsPrototype<'host, Parent = P>,
 {
-    let Some(plugin) = get_ext::<P>(plugin_ptr) else {
+    let Some(plugin) = get_ext::<P, E>(plugin_ptr) else {
         return false;
     };
     let dst = unsafe { core::slice::from_raw_parts_mut(out_buffer, out_buffer_capacity as usize) };
@@ -116,18 +116,18 @@ where
     };
     false
 }
-unsafe extern "C" fn text_to_value<'host, P>(
+unsafe extern "C" fn text_to_value<'host, P, E>(
     plugin_ptr: *const clap_plugin,
     param_id: clap_id,
     param_value_text: *const c_char,
     out_value: *mut f64,
 ) -> bool
 where
-    P: PluginParamsPrototype<'host>,
-    P::Parent: PluginPrototype<'host>,
+    P: HasExtension<'host, clap_plugin_params, ExtensionType = E>,
+    E: PluginParamsPrototype<'host, Parent = P>,
 {
     println!("PARAMS TEXT TO VALUE");
-    let Some(plugin) = get_ext::<P>(plugin_ptr) else {
+    let Some(plugin) = get_ext::<P, E>(plugin_ptr) else {
         return false;
     };
     let param_value_text = unsafe { PluginParameterValueText::from_ptr(param_value_text) };
@@ -137,49 +137,46 @@ where
     };
     false
 }
-unsafe extern "C" fn flush<'host, P>(
+unsafe extern "C" fn flush<'host, P, E>(
     plugin_ptr: *const clap_plugin,
     in_: *const clap_input_events,
     out: *const clap_output_events,
 ) where
-    P: PluginParamsPrototype<'host>,
-    P::Parent: PluginPrototype<'host>,
+    P: HasExtension<'host, clap_plugin_params, ExtensionType = E>,
+    E: PluginParamsPrototype<'host, Parent = P>,
 {
     println!("PARAMS EXT FLUSH");
     let Some(parent) = (unsafe { plugin_ptr.as_ref() }) else {
         return;
     };
-    let Some(parent) = (unsafe { (parent.plugin_data as *const P::Parent).as_ref() }) else {
+    let Some(parent) = (unsafe { (parent.plugin_data as *const P).as_ref() }) else {
         return;
     };
-
-    let Some(plugin) = parent.get_params_extension::<P>() else {
-        return;
-    };
+    let plugin = parent.get_extension();
     let Some((in_, out)) = (unsafe { in_.as_ref() }).zip(unsafe { out.as_ref() }) else {
         return;
     };
     plugin.flush(parent, in_, out).unwrap_or(())
 }
-pub const fn vtable<'host, P>() -> &'static clap_plugin_params
+pub const fn vtable<'host, P, E>() -> &'static clap_plugin_params
 where
-    P: PluginParamsPrototype<'host>,
-    P::Parent: PluginPrototype<'host>,
+    P: HasExtension<'host, clap_plugin_params, ExtensionType = E>,
+    E: PluginParamsPrototype<'host, Parent = P>,
 {
     &clap_plugin_params {
-        count: Some(count::<'host, P>),
-        get_info: Some(get_info::<'host, P>),
-        get_value: Some(get_value::<'host, P>),
-        value_to_text: Some(value_to_text::<'host, P>),
-        text_to_value: Some(text_to_value::<'host, P>),
-        flush: Some(flush::<'host, P>),
+        count: Some(count::<'host, P, E>),
+        get_info: Some(get_info::<'host, P, E>),
+        get_value: Some(get_value::<'host, P, E>),
+        value_to_text: Some(value_to_text::<'host, P, E>),
+        text_to_value: Some(text_to_value::<'host, P, E>),
+        flush: Some(flush::<'host, P, E>),
     }
 }
-pub const fn extension_pointer<'host, P>() -> ProtoPtr<'host, P>
+pub const fn extension_pointer<'host, P, E>() -> ProtoPtr<'host, E>
 where
-    P: PluginParamsPrototype<'host>,
-    P::Parent: PluginPrototype<'host>,
+    P: HasExtension<'host, clap_plugin_params, ExtensionType = E>,
+    E: PluginParamsPrototype<'host, Parent = P>,
 {
-    let vt = vtable::<P>() as *const _;
+    let vt = vtable::<P, E>() as *const _;
     ProtoPtr(vt, ::core::marker::PhantomData)
 }

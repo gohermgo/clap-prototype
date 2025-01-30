@@ -11,7 +11,7 @@
 //! instance, for saving/loading a plugin preset or while saving/loading the project
 //! then consider implementing CLAP_EXT_STATE_CONTEXT in addition to CLAP_EXT_STATE
 
-use crate::plugin::PluginPrototype;
+use crate::plugin::HasExtension;
 
 use super::{ExtensionPrototype, ProtoPtr};
 pub use clap_proc_tools::plugin_parameter;
@@ -32,26 +32,26 @@ pub trait PluginStatePrototype<'host>: ExtensionPrototype<'host, Base = clap_plu
     /// Returns true if the state was correctly restored.
     fn load(&self, input_stream: &clap_istream) -> bool;
 }
-fn get_ext<'host, 'ext, P>(ptr: *const clap_plugin) -> Option<&'ext P>
+fn get_ext<'host, 'ext, P, E>(ptr: *const clap_plugin) -> Option<&'ext E>
 where
-    P: PluginStatePrototype<'host>,
-    P::Parent: PluginPrototype<'host>,
+    P: HasExtension<'host, clap_plugin_state, ExtensionType = E> + 'ext,
+    E: PluginStatePrototype<'host, Parent = P, Base = clap_plugin_state>,
     'host: 'ext,
 {
     println!("PARAMS ACCESS");
     let plugin = unsafe { ptr.as_ref() }?;
-    let parent = unsafe { (plugin.plugin_data as *const P::Parent).as_ref() }?;
-    parent.get_state_extension()
+    let parent = unsafe { (plugin.plugin_data as *const E::Parent).as_ref() }?;
+    Some(parent.get_extension())
 }
-unsafe extern "C" fn save<'host, P>(
+unsafe extern "C" fn save<'host, P, E>(
     plugin: *const clap_plugin,
     output_stream: *const clap_ostream,
 ) -> bool
 where
-    P: PluginStatePrototype<'host>,
-    P::Parent: PluginPrototype<'host>,
+    P: HasExtension<'host, clap_plugin_state, ExtensionType = E>,
+    E: PluginStatePrototype<'host, Parent = P, Base = clap_plugin_state>,
 {
-    let Some(p) = get_ext::<P>(plugin) else {
+    let Some(p) = get_ext::<P, E>(plugin) else {
         return false;
     };
     let Some(output_stream) = (unsafe { output_stream.as_ref() }) else {
@@ -59,15 +59,15 @@ where
     };
     p.save(output_stream)
 }
-unsafe extern "C" fn load<'host, P>(
+unsafe extern "C" fn load<'host, P, E>(
     plugin: *const clap_plugin,
     input_stream: *const clap_istream,
 ) -> bool
 where
-    P: PluginStatePrototype<'host>,
-    P::Parent: PluginPrototype<'host>,
+    P: HasExtension<'host, clap_plugin_state, ExtensionType = E>,
+    E: PluginStatePrototype<'host, Parent = P, Base = clap_plugin_state>,
 {
-    let Some(p) = get_ext::<P>(plugin) else {
+    let Some(p) = get_ext::<P, E>(plugin) else {
         return false;
     };
     let Some(input_stream) = (unsafe { input_stream.as_ref() }) else {
@@ -76,21 +76,21 @@ where
     p.load(input_stream)
 }
 
-pub const fn vtable<'host, P>() -> &'static clap_plugin_state
+pub const fn vtable<'host, P, E>() -> &'static clap_plugin_state
 where
-    P: PluginStatePrototype<'host>,
-    P::Parent: PluginPrototype<'host>,
+    P: HasExtension<'host, clap_plugin_state, ExtensionType = E>,
+    E: PluginStatePrototype<'host, Parent = P, Base = clap_plugin_state>,
 {
     &clap_plugin_state {
-        save: Some(save::<'host, P>),
-        load: Some(load::<'host, P>),
+        save: Some(save::<'host, P, E>),
+        load: Some(load::<'host, P, E>),
     }
 }
-pub const fn extension_pointer<'host, P>() -> ProtoPtr<'host, P>
+pub const fn extension_pointer<'host, P, E>() -> ProtoPtr<'host, E>
 where
-    P: PluginStatePrototype<'host>,
-    P::Parent: PluginPrototype<'host>,
+    P: HasExtension<'host, clap_plugin_state, ExtensionType = E>,
+    E: PluginStatePrototype<'host, Parent = P, Base = clap_plugin_state>,
 {
-    let vt = vtable::<P>() as *const _;
+    let vt = vtable::<P, E>() as *const _;
     ProtoPtr(vt, ::core::marker::PhantomData)
 }

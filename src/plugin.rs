@@ -11,6 +11,7 @@ pub use descriptor::PluginDescriptor;
 pub use str_types::*;
 
 use crate::AbstractPrototype;
+use crate::ext::ExtensionPrototype;
 use crate::ext::audio_ports::PluginAudioPortsPrototype;
 use crate::ext::gui::PluginGUIPrototype;
 use crate::ext::params::PluginParamsPrototype;
@@ -58,4 +59,9 @@ pub trait PluginPrototype<'host>: AbstractPrototype<'host, Base = clap_plugin> {
     {
         None
     }
+}
+
+pub trait HasExtension<'host, B>: PluginPrototype<'host> {
+    type ExtensionType: ExtensionPrototype<'host, Parent = Self, Base = B>;
+    fn get_extension(&self) -> &Self::ExtensionType;
 }
