@@ -46,7 +46,7 @@ where
     println!("PARAMS ACCESS");
     let plugin = unsafe { ptr.as_ref() }?;
     let parent = unsafe { (plugin.plugin_data as *const P).as_ref() }?;
-    parent.get_params_extension()
+    Some(parent.get_extension())
 }
 unsafe extern "C" fn count<'host, P, E>(plugin_ptr: *const clap_plugin) -> u32
 where
