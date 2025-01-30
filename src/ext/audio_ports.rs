@@ -70,7 +70,7 @@ where
 pub const fn extension_pointer<'host, P, E>() -> ProtoPtr<'host, E>
 where
     P: HasExtension<'host, clap_plugin_audio_ports, ExtensionType = E>,
-    E: PluginAudioPortsPrototype<'host>,
+    E: PluginAudioPortsPrototype<'host, Parent = P>,
 {
     let vt = vtable::<P, E>() as *const _;
     ProtoPtr(vt, ::core::marker::PhantomData)

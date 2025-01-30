@@ -51,45 +51,49 @@ use clap_sys::plugin::clap_plugin;
 use clap_sys::ext::gui::clap_plugin_gui;
 use clap_sys::ext::gui::{clap_gui_resize_hints, clap_window};
 
-pub enum PluginWindowAPI {
+pub enum PluginGUIWindowAPI {
     Windows,
     Cocoa,
     X11,
     Wayland,
 }
-impl PluginWindowAPI {
-    pub fn maybe_from(api_name: &PluginGUIWindowAPIName) -> Option<PluginWindowAPI> {
+impl PluginGUIWindowAPI {
+    pub fn maybe_from(api_name: &PluginGUIWindowAPIName) -> Option<PluginGUIWindowAPI> {
         use clap_sys::ext::gui::{
             CLAP_WINDOW_API_COCOA, CLAP_WINDOW_API_WAYLAND, CLAP_WINDOW_API_WIN32,
             CLAP_WINDOW_API_X11,
         };
         match api_name {
-            api_name if api_name == CLAP_WINDOW_API_WIN32 => Some(PluginWindowAPI::Windows),
-            api_name if api_name == CLAP_WINDOW_API_COCOA => Some(PluginWindowAPI::Cocoa),
-            api_name if api_name == CLAP_WINDOW_API_WAYLAND => Some(PluginWindowAPI::Wayland),
-            api_name if api_name == CLAP_WINDOW_API_X11 => Some(PluginWindowAPI::X11),
+            api_name if api_name == CLAP_WINDOW_API_WIN32 => Some(PluginGUIWindowAPI::Windows),
+            api_name if api_name == CLAP_WINDOW_API_COCOA => Some(PluginGUIWindowAPI::Cocoa),
+            api_name if api_name == CLAP_WINDOW_API_WAYLAND => Some(PluginGUIWindowAPI::Wayland),
+            api_name if api_name == CLAP_WINDOW_API_X11 => Some(PluginGUIWindowAPI::X11),
             _ => None,
         }
     }
 }
-impl From<PluginWindowAPI> for &'static PluginGUIWindowAPIName {
-    fn from(value: PluginWindowAPI) -> Self {
+impl From<PluginGUIWindowAPI> for &'static PluginGUIWindowAPIName {
+    fn from(value: PluginGUIWindowAPI) -> Self {
         use clap_sys::ext::gui::{
             CLAP_WINDOW_API_COCOA, CLAP_WINDOW_API_WAYLAND, CLAP_WINDOW_API_WIN32,
             CLAP_WINDOW_API_X11,
         };
         match value {
-            PluginWindowAPI::Windows => PluginGUIWindowAPIName::from_c_str(CLAP_WINDOW_API_WIN32),
-            PluginWindowAPI::Cocoa => PluginGUIWindowAPIName::from_c_str(CLAP_WINDOW_API_COCOA),
-            PluginWindowAPI::Wayland => PluginGUIWindowAPIName::from_c_str(CLAP_WINDOW_API_WAYLAND),
-            PluginWindowAPI::X11 => PluginGUIWindowAPIName::from_c_str(CLAP_WINDOW_API_X11),
+            PluginGUIWindowAPI::Windows => {
+                PluginGUIWindowAPIName::from_c_str(CLAP_WINDOW_API_WIN32)
+            }
+            PluginGUIWindowAPI::Cocoa => PluginGUIWindowAPIName::from_c_str(CLAP_WINDOW_API_COCOA),
+            PluginGUIWindowAPI::Wayland => {
+                PluginGUIWindowAPIName::from_c_str(CLAP_WINDOW_API_WAYLAND)
+            }
+            PluginGUIWindowAPI::X11 => PluginGUIWindowAPIName::from_c_str(CLAP_WINDOW_API_X11),
         }
     }
 }
 
 pub struct PluginGUIWindowAPIDetails {
-    window_api: PluginWindowAPI,
-    is_floating: bool,
+    pub window_api: PluginGUIWindowAPI,
+    pub is_floating: bool,
 }
 
 #[repr(C)]
@@ -222,7 +226,7 @@ where
         return false;
     };
     let name = unsafe { PluginGUIWindowAPIName::from_ptr(api) };
-    let Some(window_api) = PluginWindowAPI::maybe_from(name) else {
+    let Some(window_api) = PluginGUIWindowAPI::maybe_from(name) else {
         println!("What API is {name:?} tf");
         return false;
     };
@@ -273,7 +277,7 @@ where
         return false;
     };
     let name = unsafe { PluginGUIWindowAPIName::from_ptr(api) };
-    let Some(window_api) = PluginWindowAPI::maybe_from(name) else {
+    let Some(window_api) = PluginGUIWindowAPI::maybe_from(name) else {
         println!("What API is {name:?} tf");
         return false;
     };
@@ -499,7 +503,7 @@ where
 pub const fn extension_pointer<'host, P, E>() -> ProtoPtr<'host, E>
 where
     P: HasExtension<'host, clap_plugin_gui, ExtensionType = E>,
-    E: PluginGUIPrototype<'host, Base = clap_plugin_gui>,
+    E: PluginGUIPrototype<'host, Base = clap_plugin_gui, Parent = P>,
 {
     let vt = vtable::<P, E>() as *const _;
     ProtoPtr(vt, ::core::marker::PhantomData)
