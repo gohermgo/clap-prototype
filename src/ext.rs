@@ -1,6 +1,7 @@
 use crate::{AbstractPrototype, ProtoPtr};
 
 pub mod audio_ports;
+pub mod gui;
 pub mod params;
 pub mod state;
 pub mod state_context;

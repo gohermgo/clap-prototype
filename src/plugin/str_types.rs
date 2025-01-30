@@ -108,6 +108,10 @@ string_component! { PluginExtensionID }
 
 string_component! { PluginFeature }
 
+string_component! { PluginGUIWindowAPIName }
+
+string_component! { PluginGUIWindowTitle }
+
 #[repr(transparent)]
 pub struct RawPluginFeature(*const c_char);
 impl RawPluginFeature {
