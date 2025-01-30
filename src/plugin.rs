@@ -2,6 +2,7 @@ pub(crate) mod descriptor;
 pub mod features;
 pub(crate) mod str_types;
 
+use clap_sys::ext::audio_ports::clap_plugin_audio_ports;
 use clap_sys::ext::state_context::clap_plugin_state_context;
 pub use descriptor::PluginDescriptor;
 pub use str_types::*;
@@ -29,9 +30,10 @@ pub trait PluginPrototype<'host>: AbstractPrototype<'host, Base = clap_plugin> {
     fn get_params_extension(&self) -> Option<&Self::PluginParamsExtension> {
         None
     }
-
-    type PluginAudioPortsExtension: PluginAudioPortsPrototype<'host>;
-    fn get_audio_ports_extension(&self) -> Option<&Self::PluginAudioPortsExtension> {
+    fn get_audio_ports_extension<E>(&self) -> Option<&E>
+    where
+        E: PluginAudioPortsPrototype<'host, Parent = Self, Base = clap_plugin_audio_ports>,
+    {
         None
     }
 

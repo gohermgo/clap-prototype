@@ -14,7 +14,7 @@ pub trait PluginAudioPortsPrototype<'host>:
 fn get_ext<'host, 'ext, P>(ptr: *const clap_plugin) -> Option<&'ext P>
 where
     P: PluginAudioPortsPrototype<'host>,
-    P::Parent: PluginPrototype<'host, PluginAudioPortsExtension = P>,
+    P::Parent: PluginPrototype<'host>,
     'host: 'ext,
 {
     println!("GET EXT AUDIO PORTS");
@@ -26,7 +26,7 @@ where
 unsafe extern "C" fn count<'host, P>(plugin_ptr: *const clap_plugin, is_input: bool) -> u32
 where
     P: PluginAudioPortsPrototype<'host>,
-    P::Parent: PluginPrototype<'host, PluginAudioPortsExtension = P>,
+    P::Parent: PluginPrototype<'host>,
 {
     println!("EXTERN FN AUDIO PORTS COUNT");
     let Some(ext) = get_ext::<P>(plugin_ptr) else {
@@ -44,7 +44,7 @@ unsafe extern "C" fn get<'host, P>(
 ) -> bool
 where
     P: PluginAudioPortsPrototype<'host>,
-    P::Parent: PluginPrototype<'host, PluginAudioPortsExtension = P>,
+    P::Parent: PluginPrototype<'host>,
 {
     println!("EXTERN FN AUDIO PORTS GET");
     let Some(ext) = get_ext::<P>(plugin) else {
@@ -60,7 +60,7 @@ where
 pub const fn vtable<'host, P>() -> &'static clap_plugin_audio_ports
 where
     P: PluginAudioPortsPrototype<'host>,
-    P::Parent: PluginPrototype<'host, PluginAudioPortsExtension = P>,
+    P::Parent: PluginPrototype<'host>,
 {
     &clap_plugin_audio_ports {
         count: Some(count::<P>),
@@ -70,7 +70,7 @@ where
 pub const fn extension_pointer<'host, P>() -> ProtoPtr<'host, P>
 where
     P: PluginAudioPortsPrototype<'host>,
-    P::Parent: PluginPrototype<'host, PluginAudioPortsExtension = P>,
+    P::Parent: PluginPrototype<'host>,
 {
     let vt = vtable::<P>() as *const _;
     ProtoPtr(vt, ::core::marker::PhantomData)
