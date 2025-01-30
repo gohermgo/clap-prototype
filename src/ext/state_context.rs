@@ -76,7 +76,7 @@ pub trait PluginStateContextPrototype<'host>:
 fn get_ext<'host, 'ext, P>(ptr: *const clap_plugin) -> Option<&'ext P>
 where
     P: PluginStateContextPrototype<'host>,
-    P::Parent: PluginPrototype<'host, PluginStateContextExtension = P>,
+    P::Parent: PluginPrototype<'host>,
     'host: 'ext,
 {
     println!("PARAMS ACCESS");
@@ -91,7 +91,7 @@ unsafe extern "C" fn save<'host, P>(
 ) -> bool
 where
     P: PluginStateContextPrototype<'host>,
-    P::Parent: PluginPrototype<'host, PluginStateContextExtension = P>,
+    P::Parent: PluginPrototype<'host>,
 {
     let Some(p) = get_ext::<P>(plugin) else {
         return false;
@@ -109,7 +109,7 @@ unsafe extern "C" fn load<'host, P>(
 ) -> bool
 where
     P: PluginStateContextPrototype<'host>,
-    P::Parent: PluginPrototype<'host, PluginStateContextExtension = P>,
+    P::Parent: PluginPrototype<'host>,
 {
     let Some(p) = get_ext::<P>(plugin) else {
         return false;
@@ -124,7 +124,7 @@ where
 pub const fn vtable<'host, P>() -> &'static clap_plugin_state_context
 where
     P: PluginStateContextPrototype<'host>,
-    P::Parent: PluginPrototype<'host, PluginStateContextExtension = P>,
+    P::Parent: PluginPrototype<'host>,
 {
     &clap_plugin_state_context {
         save: Some(save::<'host, P>),
@@ -134,7 +134,7 @@ where
 pub const fn extension_pointer<'host, P>() -> ProtoPtr<'host, P>
 where
     P: PluginStateContextPrototype<'host>,
-    P::Parent: PluginPrototype<'host, PluginStateContextExtension = P>,
+    P::Parent: PluginPrototype<'host>,
 {
     let vt = vtable::<P>() as *const _;
     ProtoPtr(vt, ::core::marker::PhantomData)
