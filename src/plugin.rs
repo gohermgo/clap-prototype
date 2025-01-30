@@ -4,6 +4,7 @@ pub(crate) mod str_types;
 
 use clap_sys::ext::audio_ports::clap_plugin_audio_ports;
 use clap_sys::ext::gui::clap_plugin_gui;
+use clap_sys::ext::params::clap_plugin_params;
 use clap_sys::ext::state::clap_plugin_state;
 use clap_sys::ext::state_context::clap_plugin_state_context;
 pub use descriptor::PluginDescriptor;
@@ -28,8 +29,10 @@ pub trait PluginPrototype<'host>: AbstractPrototype<'host, Base = clap_plugin> {
     fn sync_main_thread_with_audio_thread(&self, output_events: &clap_output_events) -> bool;
     fn sync_proc_thread_with_main_thread(&self) -> bool;
 
-    type PluginParamsExtension: PluginParamsPrototype<'host>;
-    fn get_params_extension(&self) -> Option<&Self::PluginParamsExtension> {
+    fn get_params_extension<E>(&self) -> Option<&E>
+    where
+        E: PluginParamsPrototype<'host, Parent = Self, Base = clap_plugin_params>,
+    {
         None
     }
     fn get_audio_ports_extension<E>(&self) -> Option<&E>
