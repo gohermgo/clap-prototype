@@ -1,4 +1,5 @@
 pub mod audio_ports;
+pub mod gui;
 pub mod params;
 pub mod state;
 pub mod state_context;
@@ -6,7 +7,6 @@ pub mod state_context;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{ToTokens, format_ident, quote};
 
-use state_context::PluginStateContext;
 use syn::parse::{Parse, ParseStream};
 use syn::{ExprCall, parse_quote};
 
@@ -15,17 +15,22 @@ use syn::{FieldsNamed, Ident, ItemStruct};
 use syn::{Generics, Visibility};
 
 use audio_ports::PluginAudioPorts;
+use gui::PluginGUI;
 use params::PluginParams;
 use state::PluginState;
+use state_context::PluginStateContext;
 
 pub fn parse(attrs: TokenStream2, input: TokenStream2) -> TokenStream2 {
     match syn::parse2(attrs) {
         Err(e) => e.to_compile_error(),
-        Ok(ExtensionAttrs { extension }) if extension == "PluginParams" => {
-            ExtensionTokenizer::<PluginParams>::throw_tokenize(input)
-        }
         Ok(ExtensionAttrs { extension }) if extension == "PluginAudioPorts" => {
             ExtensionTokenizer::<PluginAudioPorts>::throw_tokenize(input)
+        }
+        Ok(ExtensionAttrs { extension }) if extension == "PluginGUI" => {
+            ExtensionTokenizer::<PluginGUI>::throw_tokenize(input)
+        }
+        Ok(ExtensionAttrs { extension }) if extension == "PluginParams" => {
+            ExtensionTokenizer::<PluginParams>::throw_tokenize(input)
         }
         Ok(ExtensionAttrs { extension }) if extension == "PluginState" => {
             ExtensionTokenizer::<PluginState>::throw_tokenize(input)
