@@ -1,4 +1,3 @@
-use crate::AbstractPrototype;
 use crate::plugin::{PluginName, PluginPrototype};
 use clap_sys::{
     factory::plugin_factory::clap_plugin_factory,
