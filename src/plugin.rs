@@ -3,6 +3,7 @@ pub mod features;
 pub(crate) mod str_types;
 
 use clap_sys::ext::audio_ports::clap_plugin_audio_ports;
+use clap_sys::ext::gui::clap_plugin_gui;
 use clap_sys::ext::state::clap_plugin_state;
 use clap_sys::ext::state_context::clap_plugin_state_context;
 pub use descriptor::PluginDescriptor;
@@ -37,7 +38,6 @@ pub trait PluginPrototype<'host>: AbstractPrototype<'host, Base = clap_plugin> {
     {
         None
     }
-
     fn get_state_extension<E>(&self) -> Option<&E>
     where
         E: PluginStatePrototype<'host, Parent = Self, Base = clap_plugin_state>,
@@ -50,9 +50,10 @@ pub trait PluginPrototype<'host>: AbstractPrototype<'host, Base = clap_plugin> {
     {
         None
     }
-
-    type PluginGUIExtension: PluginGUIPrototype<'host>;
-    fn get_gui_extension(&self) -> Option<&Self::PluginGUIExtension> {
+    fn get_gui_extension<E>(&self) -> Option<&E>
+    where
+        E: PluginGUIPrototype<'host, Parent = Self, Base = clap_plugin_gui>,
+    {
         None
     }
 }

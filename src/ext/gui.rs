@@ -46,9 +46,10 @@ use crate::plugin::{PluginGUIWindowAPIName, PluginGUIWindowTitle};
 
 use crate::ext::ExtensionPrototype;
 
+use clap_sys::plugin::clap_plugin;
+
 use clap_sys::ext::gui::clap_plugin_gui;
 use clap_sys::ext::gui::{clap_gui_resize_hints, clap_window};
-use clap_sys::plugin::clap_plugin;
 
 pub enum PluginWindowAPI {
     Windows,
@@ -197,11 +198,10 @@ pub trait PluginGUIPrototype<'host>: ExtensionPrototype<'host, Base = clap_plugi
     /// Returns true on success.
     fn hide(&self) -> bool;
 }
-
 fn get_ext<'host, 'ext, P>(plugin: *const clap_plugin) -> Option<&'ext P>
 where
     P: PluginGUIPrototype<'host, Base = clap_plugin_gui>,
-    P::Parent: PluginPrototype<'host, PluginGUIExtension = P>,
+    P::Parent: PluginPrototype<'host>,
     'host: 'ext,
 {
     let plugin = unsafe { plugin.as_ref() }?;
@@ -215,7 +215,7 @@ unsafe extern "C" fn is_api_supported<'host, P>(
 ) -> bool
 where
     P: PluginGUIPrototype<'host, Base = clap_plugin_gui>,
-    P::Parent: PluginPrototype<'host, PluginGUIExtension = P>,
+    P::Parent: PluginPrototype<'host>,
 {
     println!("GUI_IS_API_SUPPORTED");
     let Some(ext) = get_ext::<P>(plugin) else {
@@ -231,7 +231,6 @@ where
         is_floating,
     })
 }
-
 unsafe extern "C" fn get_preferred_api<'host, P>(
     plugin: *const clap_plugin,
     api: *mut *const c_char,
@@ -239,7 +238,7 @@ unsafe extern "C" fn get_preferred_api<'host, P>(
 ) -> bool
 where
     P: PluginGUIPrototype<'host, Base = clap_plugin_gui>,
-    P::Parent: PluginPrototype<'host, PluginGUIExtension = P>,
+    P::Parent: PluginPrototype<'host>,
 {
     println!("GUI_GET_PREFERRED_API");
     let Some(ext) = get_ext::<P>(plugin) else {
@@ -260,7 +259,6 @@ where
     };
     true
 }
-
 unsafe extern "C" fn create<'host, P>(
     plugin: *const clap_plugin,
     api: *const c_char,
@@ -268,7 +266,7 @@ unsafe extern "C" fn create<'host, P>(
 ) -> bool
 where
     P: PluginGUIPrototype<'host, Base = clap_plugin_gui>,
-    P::Parent: PluginPrototype<'host, PluginGUIExtension = P>,
+    P::Parent: PluginPrototype<'host>,
 {
     println!("GUI_CREATE");
     let Some(ext) = get_ext::<P>(plugin) else {
@@ -288,7 +286,7 @@ where
 unsafe extern "C" fn destroy<'host, P>(plugin: *const clap_plugin)
 where
     P: PluginGUIPrototype<'host, Base = clap_plugin_gui>,
-    P::Parent: PluginPrototype<'host, PluginGUIExtension = P>,
+    P::Parent: PluginPrototype<'host>,
 {
     println!("GUI_DESTROY");
     let Some(ext) = get_ext::<P>(plugin) else {
@@ -299,7 +297,7 @@ where
 unsafe extern "C" fn set_scale<'host, P>(plugin: *const clap_plugin, scale: f64) -> bool
 where
     P: PluginGUIPrototype<'host, Base = clap_plugin_gui>,
-    P::Parent: PluginPrototype<'host, PluginGUIExtension = P>,
+    P::Parent: PluginPrototype<'host>,
 {
     println!("GUI_SET_SCALE");
     let Some(ext) = get_ext::<P>(plugin) else {
@@ -314,7 +312,7 @@ unsafe extern "C" fn get_size<'host, P>(
 ) -> bool
 where
     P: PluginGUIPrototype<'host, Base = clap_plugin_gui>,
-    P::Parent: PluginPrototype<'host, PluginGUIExtension = P>,
+    P::Parent: PluginPrototype<'host>,
 {
     println!("GUI_GET_SIZE");
     let Some(ext) = get_ext::<P>(plugin) else {
@@ -335,7 +333,7 @@ where
 unsafe extern "C" fn can_resize<'host, P>(plugin: *const clap_plugin) -> bool
 where
     P: PluginGUIPrototype<'host, Base = clap_plugin_gui>,
-    P::Parent: PluginPrototype<'host, PluginGUIExtension = P>,
+    P::Parent: PluginPrototype<'host>,
 {
     println!("GUI_GET_SIZE");
     let Some(ext) = get_ext::<P>(plugin) else {
@@ -349,7 +347,7 @@ unsafe extern "C" fn get_resize_hints<'host, P>(
 ) -> bool
 where
     P: PluginGUIPrototype<'host, Base = clap_plugin_gui>,
-    P::Parent: PluginPrototype<'host, PluginGUIExtension = P>,
+    P::Parent: PluginPrototype<'host>,
 {
     println!("GUI_GET_RESIZE_HINTS");
     let Some(ext) = get_ext::<P>(plugin) else {
@@ -371,7 +369,7 @@ unsafe extern "C" fn adjust_size<'host, P>(
 ) -> bool
 where
     P: PluginGUIPrototype<'host, Base = clap_plugin_gui>,
-    P::Parent: PluginPrototype<'host, PluginGUIExtension = P>,
+    P::Parent: PluginPrototype<'host>,
 {
     println!("GUI_ADJUST_SIZE");
     let Some(ext) = get_ext::<P>(plugin) else {
@@ -394,7 +392,7 @@ where
 unsafe extern "C" fn set_size<'host, P>(plugin: *const clap_plugin, width: u32, height: u32) -> bool
 where
     P: PluginGUIPrototype<'host, Base = clap_plugin_gui>,
-    P::Parent: PluginPrototype<'host, PluginGUIExtension = P>,
+    P::Parent: PluginPrototype<'host>,
 {
     println!("GUI_SET_SIZE");
     let Some(ext) = get_ext::<P>(plugin) else {
@@ -408,7 +406,7 @@ unsafe extern "C" fn set_parent<'host, P>(
 ) -> bool
 where
     P: PluginGUIPrototype<'host, Base = clap_plugin_gui>,
-    P::Parent: PluginPrototype<'host, PluginGUIExtension = P>,
+    P::Parent: PluginPrototype<'host>,
 {
     println!("GUI_SET_PARENT");
     let Some(ext) = get_ext::<P>(plugin) else {
@@ -426,7 +424,7 @@ unsafe extern "C" fn set_transient<'host, P>(
 ) -> bool
 where
     P: PluginGUIPrototype<'host, Base = clap_plugin_gui>,
-    P::Parent: PluginPrototype<'host, PluginGUIExtension = P>,
+    P::Parent: PluginPrototype<'host>,
 {
     println!("GUI_SET_TRANSIENT");
     let Some(ext) = get_ext::<P>(plugin) else {
@@ -441,7 +439,7 @@ where
 unsafe extern "C" fn suggest_title<'host, P>(plugin: *const clap_plugin, title: *const c_char)
 where
     P: PluginGUIPrototype<'host, Base = clap_plugin_gui>,
-    P::Parent: PluginPrototype<'host, PluginGUIExtension = P>,
+    P::Parent: PluginPrototype<'host>,
 {
     println!("GUI_SUGGEST_TITLE");
     let Some(ext) = get_ext::<P>(plugin) else {
@@ -453,7 +451,7 @@ where
 unsafe extern "C" fn show<'host, P>(plugin: *const clap_plugin) -> bool
 where
     P: PluginGUIPrototype<'host, Base = clap_plugin_gui>,
-    P::Parent: PluginPrototype<'host, PluginGUIExtension = P>,
+    P::Parent: PluginPrototype<'host>,
 {
     println!("GUI_SHOW");
     let Some(ext) = get_ext::<P>(plugin) else {
@@ -464,7 +462,7 @@ where
 unsafe extern "C" fn hide<'host, P>(plugin: *const clap_plugin) -> bool
 where
     P: PluginGUIPrototype<'host, Base = clap_plugin_gui>,
-    P::Parent: PluginPrototype<'host, PluginGUIExtension = P>,
+    P::Parent: PluginPrototype<'host>,
 {
     println!("GUI_HIDE");
     let Some(ext) = get_ext::<P>(plugin) else {
@@ -475,7 +473,7 @@ where
 pub const fn vtable<'host, P>() -> &'static clap_plugin_gui
 where
     P: PluginGUIPrototype<'host>,
-    P::Parent: PluginPrototype<'host, PluginGUIExtension = P>,
+    P::Parent: PluginPrototype<'host>,
 {
     &clap_plugin_gui {
         is_api_supported: Some(is_api_supported::<'host, P>),
@@ -498,7 +496,7 @@ where
 pub const fn extension_pointer<'host, P>() -> ProtoPtr<'host, P>
 where
     P: PluginGUIPrototype<'host>,
-    P::Parent: PluginPrototype<'host, PluginGUIExtension = P>,
+    P::Parent: PluginPrototype<'host>,
 {
     let vt = vtable::<P>() as *const _;
     ProtoPtr(vt, ::core::marker::PhantomData)
