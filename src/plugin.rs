@@ -8,6 +8,7 @@ pub use str_types::*;
 
 use crate::AbstractPrototype;
 use crate::ext::audio_ports::PluginAudioPortsPrototype;
+use crate::ext::gui::PluginGUIPrototype;
 use crate::ext::params::PluginParamsPrototype;
 use crate::ext::state::PluginStatePrototype;
 use crate::ext::state_context::PluginStateContextPrototype;
@@ -16,10 +17,6 @@ use clap_sys::events::clap_output_events;
 use clap_sys::plugin::clap_plugin;
 
 pub trait PluginPrototype<'host>: AbstractPrototype<'host, Base = clap_plugin> {
-    type PluginParamsExtension: PluginParamsPrototype<'host>;
-    type PluginAudioPortsExtension: PluginAudioPortsPrototype<'host>;
-    type PluginStateExtension: PluginStatePrototype<'host>;
-    /// Sorry had to
     fn initialize(&mut self) -> bool;
     fn get_descriptor(&self) -> PluginDescriptor<'_>;
     fn get_id(&self) -> &PluginID {
@@ -27,17 +24,30 @@ pub trait PluginPrototype<'host>: AbstractPrototype<'host, Base = clap_plugin> {
     }
     fn sync_main_thread_with_audio_thread(&self, output_events: &clap_output_events) -> bool;
     fn sync_proc_thread_with_main_thread(&self) -> bool;
+
+    type PluginParamsExtension: PluginParamsPrototype<'host>;
     fn get_params_extension(&self) -> Option<&Self::PluginParamsExtension> {
         None
     }
+
+    type PluginAudioPortsExtension: PluginAudioPortsPrototype<'host>;
     fn get_audio_ports_extension(&self) -> Option<&Self::PluginAudioPortsExtension> {
         None
     }
+
+    type PluginStateExtension: PluginStatePrototype<'host>;
     fn get_state_extension(&self) -> Option<&Self::PluginStateExtension> {
         None
     }
     type PluginStateContextExtension: PluginStateContextPrototype<'host, Base = clap_plugin_state_context>;
-    fn get_state_context_extension(&self) -> Option<&Self::PluginStateContextExtension>;
+    fn get_state_context_extension(&self) -> Option<&Self::PluginStateContextExtension> {
+        None
+    }
+
+    type PluginGUIExtension: PluginGUIPrototype<'host>;
+    fn get_gui_extension(&self) -> Option<&Self::PluginGUIExtension> {
+        None
+    }
 }
 
 /// Work in progress trait based on my initial integration
