@@ -28,8 +28,8 @@ pub use clap_proc_tools::plugin_parameter;
 
 use core::mem::transmute;
 
-use crate::ProtoPtr;
 use crate::plugin::HasExtension;
+use crate::ProtoPtr;
 
 use crate::ext::ExtensionPrototype;
 
