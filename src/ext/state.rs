@@ -38,7 +38,6 @@ where
     E: PluginStatePrototype<'host, Parent = P, Base = clap_plugin_state>,
     'host: 'ext,
 {
-    println!("PARAMS ACCESS");
     let plugin = unsafe { ptr.as_ref() }?;
     let parent = unsafe { (plugin.plugin_data as *const E::Parent).as_ref() }?;
     Some(parent.get_extension())

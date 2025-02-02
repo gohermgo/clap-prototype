@@ -17,25 +17,22 @@ pub trait PluginParamsPrototype<'host>:
     fn get_info(&self, param_index: u32) -> Option<&clap_param_info>;
     fn get_value(&self, param_id: clap_id) -> Option<f64>;
     /// Takes in a mutable reference to a slice to write to
-    fn value_to_text(&self, param_id: clap_id, value: f64, dst: &mut [i8]) -> Option<usize> {
-        println!("ValueToText default impl");
-        if param_id >= self.count() {
-            return None;
-        }
-        self.value_to_text_function(param_id)(value, dst)
-    }
-    fn value_to_text_function(&self, param_id: clap_id) -> fn(f64, &mut [i8]) -> Option<usize>;
+    fn value_to_text(&self, param_id: clap_id, value: f64, dst: &mut [i8]) -> Option<usize>;
     fn text_to_value(
         &self,
         param_id: clap_id,
         param_value_text: &PluginParameterValueText,
     ) -> Option<f64>;
-    fn flush(
-        &self,
-        plugin: &Self::Parent,
-        in_: &clap_input_events,
-        out: &clap_output_events,
-    ) -> Option<()>;
+    /// `active` ? `audio-thread` : `main-thread`
+    ///
+    /// Flushes a set of parameter changes.
+    /// This method must not be called concurrently to [PluginPrototype::process](crate::plugin::PluginPrototype::process).
+    ///
+    /// Note: if the plugin is processing, then the process() call will already achieve the
+    /// parameter update (bi-directional), so a call to flush isn't required, also be aware
+    /// that the plugin may use the sample offset in process(), while this information would be
+    /// lost within flush().
+    fn flush(&self, in_events: &clap_input_events, out_events: &clap_output_events) -> Option<()>;
 }
 fn get_ext<'host, 'ext, P, E>(ptr: *const clap_plugin) -> Option<&'ext E>
 where
@@ -43,7 +40,6 @@ where
     E: PluginParamsPrototype<'host, Parent = P>,
     'host: 'ext,
 {
-    println!("PARAMS ACCESS");
     let plugin = unsafe { ptr.as_ref() }?;
     let parent = unsafe { (plugin.plugin_data as *const P).as_ref() }?;
     Some(parent.get_extension())
@@ -53,7 +49,6 @@ where
     P: HasExtension<'host, clap_plugin_params, ExtensionType = E>,
     E: PluginParamsPrototype<'host, Parent = P>,
 {
-    println!("PARAMS COUNT EXT");
     let Some(plugin) = get_ext::<P, E>(plugin_ptr) else {
         return 0;
     };
@@ -68,7 +63,6 @@ where
     P: HasExtension<'host, clap_plugin_params, ExtensionType = E>,
     E: PluginParamsPrototype<'host, Parent = P>,
 {
-    println!("PARAMS GET INFO EXT");
     let Some(plugin) = get_ext::<P, E>(plugin_ptr) else {
         return false;
     };
@@ -126,7 +120,6 @@ where
     P: HasExtension<'host, clap_plugin_params, ExtensionType = E>,
     E: PluginParamsPrototype<'host, Parent = P>,
 {
-    println!("PARAMS TEXT TO VALUE");
     let Some(plugin) = get_ext::<P, E>(plugin_ptr) else {
         return false;
     };
@@ -145,7 +138,6 @@ unsafe extern "C" fn flush<'host, P, E>(
     P: HasExtension<'host, clap_plugin_params, ExtensionType = E>,
     E: PluginParamsPrototype<'host, Parent = P>,
 {
-    println!("PARAMS EXT FLUSH");
     let Some(parent) = (unsafe { plugin_ptr.as_ref() }) else {
         return;
     };
@@ -156,7 +148,7 @@ unsafe extern "C" fn flush<'host, P, E>(
     let Some((in_, out)) = (unsafe { in_.as_ref() }).zip(unsafe { out.as_ref() }) else {
         return;
     };
-    plugin.flush(parent, in_, out).unwrap_or(())
+    plugin.flush(in_, out).unwrap_or(())
 }
 pub const fn vtable<'host, P, E>() -> &'static clap_plugin_params
 where

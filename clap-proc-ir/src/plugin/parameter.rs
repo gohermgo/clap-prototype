@@ -15,7 +15,6 @@ pub fn parse(input: TokenStream2) -> TokenStream2 {
     match syn::parse2(input) {
         Ok(PluginParamInfo(mut values)) => {
             let id = PARSED.fetch_add(1, Acquire).to_token_stream();
-            println!("ID {id}");
             let id: LitInt = parse_quote! { #id };
             values.push(PluginParamInfoField::Id(id));
             quote! {
