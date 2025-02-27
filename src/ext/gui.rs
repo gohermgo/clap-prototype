@@ -97,6 +97,7 @@ pub struct PluginGUIWindowAPIDetails {
 }
 
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct PluginGUIWindowSize {
     pub width: u32,
     pub height: u32,
