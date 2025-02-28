@@ -1,4 +1,4 @@
-use core::ffi::{c_char, c_void};
+use core::ffi::c_char;
 use core::fmt::{Display, Formatter, Result as FmtResult};
 use core::mem::transmute;
 
