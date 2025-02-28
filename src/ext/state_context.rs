@@ -13,9 +13,7 @@
 //! All three operations should be equivalent:
 //! 1. clap_plugin_state_context.load(clap_plugin_state.save(), CLAP_STATE_CONTEXT_FOR_PRESET)
 //! 2. clap_plugin_state.load(clap_plugin_state_context.save(CLAP_STATE_CONTEXT_FOR_PRESET))
-//! 3. clap_plugin_state_context.load(
-//!        clap_plugin_state_context.save(CLAP_STATE_CONTEXT_FOR_PRESET),
-//!        CLAP_STATE_CONTEXT_FOR_PRESET)
+//! 3. clap_plugin_state_context.load(clap_plugin_state_context.save(CLAP_STATE_CONTEXT_FOR_PRESET), CLAP_STATE_CONTEXT_FOR_PRESET)
 //!
 //! If in doubt, fallback to clap_plugin_state.
 //!
@@ -28,8 +26,8 @@ pub use clap_proc_tools::plugin_parameter;
 
 use core::mem::transmute;
 
-use crate::plugin::HasExtension;
 use crate::ProtoPtr;
+use crate::plugin::HasExtension;
 
 use crate::ext::ExtensionPrototype;
 
