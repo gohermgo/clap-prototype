@@ -1,7 +1,7 @@
 use core::ffi::c_char;
 use core::fmt::{Display, Formatter, Result as FmtResult};
 use core::mem::transmute;
-use std::ffi::CStr;
+
 use std::sync::Arc;
 
 use clap_sys::string_sizes::{CLAP_NAME_SIZE, CLAP_PATH_SIZE};
@@ -38,7 +38,15 @@ macro_rules! string_component {
 string_component! { PluginParameterValueText }
 string_component! { PluginID }
 string_component! { PluginName }
-
+string_component! { PluginVendor }
+string_component! { PluginURL }
+string_component! { PluginVersion }
+string_component! { PluginDescription }
+string_component! { PluginPath }
+string_component! { PluginExtensionID }
+string_component! { PluginFeature }
+string_component! { PluginGUIWindowAPIName }
+string_component! { PluginGUIWindowTitle }
 #[derive(Debug)]
 pub enum FromPtrError {
     Malformed(usize),
@@ -57,8 +65,8 @@ impl Display for FromPtrError {
     }
 }
 fn try_from_inner<'s, T: ?Sized, const N: usize>(
-    ptr: *const ::core::ffi::c_char,
-    new: unsafe fn(*const ::core::ffi::c_char) -> &'s T,
+    ptr: *const c_char,
+    new: unsafe fn(*const c_char) -> &'s T,
 ) -> Result<&'s T, FromPtrError> {
     // Walk the pointer, we do not know if
     // the entire is valid
@@ -78,40 +86,28 @@ fn try_from_inner<'s, T: ?Sized, const N: usize>(
     // Tail return
     Err(FromPtrError::MissingNul)
 }
-impl TryFrom<*const ::core::ffi::c_char> for &PluginName {
+impl TryFrom<*const c_char> for &PluginName {
     type Error = FromPtrError;
-    fn try_from(value: *const ::core::ffi::c_char) -> Result<Self, Self::Error> {
+    fn try_from(value: *const c_char) -> Result<Self, Self::Error> {
         try_from_inner::<PluginName, CLAP_NAME_SIZE>(value, PluginName::from_ptr)
     }
 }
 impl PluginName {
-    pub const fn to_fixed(&self) -> [i8; CLAP_NAME_SIZE] {
+    pub const fn to_fixed(&self) -> [c_char; CLAP_NAME_SIZE] {
         to_fixed(self.0.as_ptr(), self.0.count_bytes())
     }
 }
-string_component! { PluginVendor }
-string_component! { PluginURL }
-string_component! { PluginVersion }
-string_component! { PluginDescription }
-string_component! { PluginPath }
-impl TryFrom<*const ::core::ffi::c_char> for &PluginPath {
+impl TryFrom<*const c_char> for &PluginPath {
     type Error = FromPtrError;
-    fn try_from(value: *const ::core::ffi::c_char) -> Result<Self, Self::Error> {
+    fn try_from(value: *const c_char) -> Result<Self, Self::Error> {
         try_from_inner::<PluginPath, CLAP_PATH_SIZE>(value, PluginPath::from_ptr)
     }
 }
 impl PluginPath {
-    pub const fn to_fixed(&self) -> [i8; CLAP_PATH_SIZE] {
+    pub const fn to_fixed(&self) -> [c_char; CLAP_PATH_SIZE] {
         to_fixed(self.0.as_ptr(), self.0.count_bytes())
     }
 }
-string_component! { PluginExtensionID }
-
-string_component! { PluginFeature }
-
-string_component! { PluginGUIWindowAPIName }
-
-string_component! { PluginGUIWindowTitle }
 
 #[repr(transparent)]
 pub struct RawPluginFeature(*const c_char);
