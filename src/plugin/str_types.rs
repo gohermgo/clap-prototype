@@ -1,7 +1,7 @@
 use core::ffi::c_char;
 use core::fmt::{Display, Formatter, Result as FmtResult};
 use core::mem::transmute;
-use std::ffi::CStr;
+
 use std::sync::Arc;
 
 use clap_sys::string_sizes::{CLAP_NAME_SIZE, CLAP_PATH_SIZE};
