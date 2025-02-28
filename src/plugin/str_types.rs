@@ -38,7 +38,15 @@ macro_rules! string_component {
 string_component! { PluginParameterValueText }
 string_component! { PluginID }
 string_component! { PluginName }
-
+string_component! { PluginVendor }
+string_component! { PluginURL }
+string_component! { PluginVersion }
+string_component! { PluginDescription }
+string_component! { PluginPath }
+string_component! { PluginExtensionID }
+string_component! { PluginFeature }
+string_component! { PluginGUIWindowAPIName }
+string_component! { PluginGUIWindowTitle }
 #[derive(Debug)]
 pub enum FromPtrError {
     Malformed(usize),
@@ -89,11 +97,6 @@ impl PluginName {
         to_fixed(self.0.as_ptr(), self.0.count_bytes())
     }
 }
-string_component! { PluginVendor }
-string_component! { PluginURL }
-string_component! { PluginVersion }
-string_component! { PluginDescription }
-string_component! { PluginPath }
 impl TryFrom<*const ::core::ffi::c_char> for &PluginPath {
     type Error = FromPtrError;
     fn try_from(value: *const ::core::ffi::c_char) -> Result<Self, Self::Error> {
@@ -105,13 +108,6 @@ impl PluginPath {
         to_fixed(self.0.as_ptr(), self.0.count_bytes())
     }
 }
-string_component! { PluginExtensionID }
-
-string_component! { PluginFeature }
-
-string_component! { PluginGUIWindowAPIName }
-
-string_component! { PluginGUIWindowTitle }
 
 #[repr(transparent)]
 pub struct RawPluginFeature(*const c_char);
